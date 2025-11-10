@@ -27,7 +27,7 @@ app.use(cookieParser()); // ✅ ADD THIS - Must be BEFORE session middleware
 // CORS Configuration
 const allowedOrigins = [
   "http://localhost:5173",
-  "https://veloura-rose.vercel.app",
+  "https://trouble-reporting-frontend.vercel.app/",
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
