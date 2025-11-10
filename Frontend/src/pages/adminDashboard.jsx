@@ -683,7 +683,7 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     try {
       await fetch(`${API_URL}/logout`, { credentials: "include" });
-      window.location.href = "/login";
+      window.location.href = "/";
     } catch (err) {
       console.error("Logout error:", err);
     }
