@@ -6,8 +6,9 @@ const passport = require("passport");
 const mongoose = require("mongoose");
 const connectDB = require("./db");
 const MongoStore = require("connect-mongo");
-const cookieParser = require("cookie-parser");
+const cookieParser = require("cookie-parser"); // ✅ ADD THIS
 
+// Routers & Models
 const indexRouter = require("./routes/index");
 const User = require("./models/Users");
 
@@ -16,18 +17,12 @@ dotenv.config();
 const app = express();
 app.set("trust proxy", 1);
 
-// ✅ FIX: Normalize URLs - remove double slashes
-app.use((req, res, next) => {
-  if (req.url.match(/\/\//)) {
-    req.url = req.url.replace(/\/+/g, '/');
-  }
-  next();
-});
-
+// Connect to Database
 connectDB();
 
+// Middleware
 app.use(express.json());
-app.use(cookieParser());
+app.use(cookieParser()); // ✅ ADD THIS - Must be BEFORE session middleware
 
 // CORS Configuration
 const allowedOrigins = [
@@ -36,18 +31,15 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-const corsOptions = {
-  origin: allowedOrigins,
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["set-cookie"],
-};
-
-app.use(cors(corsOptions));
-
-// ✅ FIX: Explicit preflight handling
-app.options('*', cors(corsOptions));
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["set-cookie"],
+  })
+);
 
 // Session Configuration
 app.use(
@@ -61,21 +53,24 @@ app.use(
       ttl: 24 * 60 * 60,
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV === "production", // ✅ Changed back for local dev
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // ✅ Changed back
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
 
+// Initialize Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Configure Passport using the User model
 passport.use(User.createStrategy());
 passport.serializeUser(User.serializeUser());
 passport.deserializeUser(User.deserializeUser());
 
+// Health Check Route
 app.get("/", (req, res) => {
   res.json({
     message: "Server is running 🚀",
@@ -83,28 +78,34 @@ app.get("/", (req, res) => {
   });
 });
 
+// Debug Middleware
 app.use((req, res, next) => {
   console.log("🔍 Headers:", req.headers.cookie);
-  console.log("🍪 Parsed Cookies:", req.cookies);
+  console.log("🍪 Parsed Cookies:", req.cookies); // Should now show cookies
   console.log("📝 Session ID:", req.sessionID);
   console.log("✅ Authenticated:", req.isAuthenticated?.());
   next();
 });
 
+// API Routes
 app.use("/", indexRouter);
 
+// 404 Handler
 app.use((req, res) => {
   res.status(404).json({ error: "Route not found" });
 });
 
+// Error Handler
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: "Something went wrong!" });
 });
 
+// Start Server (only for local development)
 const PORT = process.env.PORT || 8000;
 if (process.env.NODE_ENV !== "production") {
   app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 }
 
+// Export for Vercel
 module.exports = app;
