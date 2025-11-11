@@ -11,6 +11,7 @@ import {
   Building2,
 } from "lucide-react";
 import API_URL from "../../utils/api";
+import useNavigate from 'react-router-dom'
 
 export default function ModernWhiteAuthForm() {
   const [isLogin, setIsLogin] = useState(true);
@@ -29,6 +30,7 @@ export default function ModernWhiteAuthForm() {
   const [errorMessage, setErrorMessage] = useState("");
   const [validationErrors, setValidationErrors] = useState({});
   const [actionSuccess, setActionSuccess] = useState(false);
+  const navigate =useNavigate()
 
   const handleInputChange = (e) => {
     setFormData({
@@ -91,24 +93,24 @@ export default function ModernWhiteAuthForm() {
         setTimeout(() => {
           switch (role) {
             case "admin":
-              window.location.href = "/adminDashboard";
+              navigate("/adminDashboard");
               break;
             case "shift_engineer":
-              window.location.href = "/shiftDashboard";
+              navigate("/shiftDashboard");
               break;
             case "department":
-              window.location.href = "/depDashboard";
+              navigate("/depDashboard");
               break;
             case "oe":
-              window.location.href = "/oeDashboard";
+              navigate("/oeDashboard");
               break;
             case "resident_engineer":
-              window.location.href = "/reDashboard";
+              navigate("/reDashboard");
               break;
             default:
               console.error("Unknown role:", role);
               // fallback to login or home
-              window.location.href = "/";
+              navigate("/");
           }
         }, 1500);
       } else {
