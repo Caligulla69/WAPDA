@@ -78,6 +78,15 @@ app.get("/", (req, res) => {
   });
 });
 
+// Add after your health check route
+app.get("/test-cors", (req, res) => {
+  res.json({
+    message: "CORS is working!",
+    origin: req.headers.origin,
+    headers: res.getHeaders(),
+  });
+});
+
 // Debug Middleware
 app.use((req, res, next) => {
   console.log("🔍 Headers:", req.headers.cookie);
