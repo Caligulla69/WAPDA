@@ -3,7 +3,7 @@
 // Automatically detect environment
 const API_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.MODE === 'production' 
-    ? 'https://wapda.vercel.app/' 
+    ? 'https://wapda.vercel.app' 
     : 'http://localhost:8000');
 
 export default API_URL;
