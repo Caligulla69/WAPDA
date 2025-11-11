@@ -11,7 +11,7 @@ import {
   Building2,
 } from "lucide-react";
 import API_URL from "../../utils/api";
-import useNavigate from 'react-router-dom'
+import {useNavigate} from 'react-router-dom'
 
 export default function ModernWhiteAuthForm() {
   const [isLogin, setIsLogin] = useState(true);
