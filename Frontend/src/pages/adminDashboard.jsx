@@ -39,7 +39,7 @@ const ReportEditModal = ({ report, onClose, onSave }) => {
     time: report?.time || "",
     notifiedBy: report?.notifiedBy || "",
     means: report?.means || "Telephone",
-    referTo: report?.referTo || "Electrical",
+    referTo: report?.referTo || " EME (P)",
     apparatus: report?.apparatus || "",
     description: report?.description || "",
     recommendation: report?.recommendation || "",
@@ -157,10 +157,14 @@ const ReportEditModal = ({ report, onClose, onSave }) => {
                 }
                 className="w-full px-3 py-2 border border-stone-300 text-sm text-stone-800 focus:border-stone-800 focus:outline-none font-light"
               >
-                <option value="Electrical">Electrical</option>
-                <option value="Mechanical">Mechanical</option>
-                <option value="Civil">Civil</option>
-                <option value="Hydro">Hydro</option>
+                <option value=" EME (P)"> EME (P)</option>
+                <option value="EME (SY)">EME (SY)</option>
+                <option value="P&IE">P&IE</option>
+                <option value=" MME (P)"> MME (P)</option>
+                <option value="MME (A)">MME (A)</option>
+                <option value="XEN (BARAL)">XEN (BARAL)</option>
+                <option value="SOS">SOS</option>
+                <option value="ITRE">ITRE</option>
               </select>
             </div>
             <div className="bg-white border border-stone-200 p-4">
@@ -300,12 +304,11 @@ const UserManagementModal = ({ onClose }) => {
     password: "",
     name: "",
     email: "",
-    department: "Electrical",
+    department: " EME (P)",
     designation: "",
     role: "shift_engineer",
   });
   const [adding, setAdding] = useState(false);
- 
 
   useEffect(() => {
     fetchUsers();
@@ -321,7 +324,6 @@ const UserManagementModal = ({ onClose }) => {
       const data = await response.json();
       console.log("Fetched users:", data);
       setUsers(data);
-      
     } catch (err) {
       console.error("Error fetching users:", err);
       alert("Error fetching users: " + err.message);
@@ -353,7 +355,7 @@ const UserManagementModal = ({ onClose }) => {
         password: "",
         name: "",
         email: "",
-        department: "Electrical",
+        department: " EME (P)",
         designation: "",
         role: "shift_engineer",
       });
@@ -386,7 +388,7 @@ const UserManagementModal = ({ onClose }) => {
   const handleToggleStatus = async (userId, currentStatus) => {
     try {
       const newStatus = !currentStatus;
-      
+
       const response = await fetch(`${API_URL}/admin/users/${userId}/status`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -396,14 +398,13 @@ const UserManagementModal = ({ onClose }) => {
 
       const data = await response.json();
       console.log("Response:", data);
-      
+
       if (!response.ok) {
         throw new Error(data.message || "Failed to update user status");
       }
 
       // Force a complete refresh of the user list
       await fetchUsers();
-      
     } catch (err) {
       console.error("Toggle error:", err);
       alert(err.message);
@@ -479,10 +480,14 @@ const UserManagementModal = ({ onClose }) => {
                 }
                 className="px-3 py-2 border border-stone-300 text-sm text-stone-800 focus:border-stone-800 focus:outline-none font-light"
               >
-                <option value="Electrical">Electrical</option>
-                <option value="Mechanical">Mechanical</option>
-                <option value="Civil">Civil</option>
-                <option value="Hydro">Hydro</option>
+                <option value=" EME (P)"> EME (P)</option>
+                <option value="EME (SY)">EME (SY)</option>
+                <option value="P&IE">P&IE</option>
+                <option value=" MME (P)"> MME (P)</option>
+                <option value="MME (A)">MME (A)</option>
+                <option value="XEN (BARAL)">XEN (BARAL)</option>
+                <option value="SOS">SOS</option>
+                <option value="ITRE">ITRE</option>
               </select>
               <input
                 type="text"
@@ -585,7 +590,6 @@ const UserManagementModal = ({ onClose }) => {
                                 ? "bg-emerald-50 text-emerald-800"
                                 : "bg-rose-50 text-rose-800"
                             }`}
-                            
                           >
                             {user.status === "active" ? "ACTIVE" : "DISABLED"}
                           </span>

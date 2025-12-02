@@ -21,13 +21,13 @@ const userSchema = new mongoose.Schema(
     department: {
       type: String,
       required: true,
-      enum: ["Electrical", "Mechanical", "Civil", "Instrumentation", "OE", "Admin"],
-      default: "Electrical",
+      enum: ["EME (P)", "EME (SY)", " P&IE", "MME (P)", "OE", "MME (A)", "XEN (EW)", "XEN (BARAL)", "SOS", "ITRE", "Admin"],
+      default: "EME (P)",
     },
     role: {
       type: String,
       required: true,
-      enum: ["shift_engineer", "department", "oe", "resident_engineer", "admin"],
+      enum: ["shift_engineer", "oe", "resident_engineer", "admin"],
       default: "shift_engineer",
     },
     status: {

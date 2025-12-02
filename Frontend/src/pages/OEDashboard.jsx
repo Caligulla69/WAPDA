@@ -23,12 +23,14 @@ import { logout } from "../../utils/logout";
 import { useNavigate } from "react-router-dom";
 
 const DEPARTMENTS = [
-  "Electrical",
-  "Mechanical",
-  "Instrumentation",
-  "Civil",
-  "Safety",
-  "Maintenance",
+  "EME (P)",
+  "EME (SY)",
+  "P&IE",
+  "MME (P)",
+  "MME (A)",
+  "XEN (BARAL)",
+  "SOS",
+  "ITRE",
 ];
 
 const ReportCard = ({ report, onClick }) => {

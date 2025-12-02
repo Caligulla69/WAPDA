@@ -75,8 +75,20 @@ const reportSchema = new mongoose.Schema(
     referTo: {
       type: String,
       required: true,
-      enum: ["Electrical", "Mechanical", "Civil", "Instrumentation"],
-      default: "Electrical",
+      enum: [
+        "EME (P)",
+        "EME (SY)",
+        " P&IE",
+        "MME (P)",
+        "OE",
+        "MME (A)",
+        "XEN (EW)",
+        "XEN (BARAL)",
+        "SOS",
+        "ITRE",
+        "Admin",
+      ],
+      default: "EME (P)",
     },
     means: {
       type: String,

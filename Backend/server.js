@@ -6,11 +6,13 @@ const passport = require("passport");
 const mongoose = require("mongoose");
 const connectDB = require("./db");
 const MongoStore = require("connect-mongo");
-const cookieParser = require("cookie-parser"); // ✅ ADD THIS
+const cookieParser = require("cookie-parser");
+const LocalStrategy = require("passport-local"). Strategy; // ✅ ADD THIS
 
 // Routers & Models
 const indexRouter = require("./routes/index");
-const User = require("./models/Users");
+const Engineer = require("./models/Users"); // ✅ Renamed for clarity
+const DepartmentalUser = require("./models/Emp"); // ✅ ADD THIS
 
 dotenv.config();
 
@@ -22,7 +24,8 @@ connectDB();
 
 // Middleware
 app.use(express.json());
-app.use(cookieParser()); // ✅ ADD THIS - Must be BEFORE session middleware
+app.use(express.urlencoded({ extended: true })); // ✅ ADD THIS
+app.use(cookieParser());
 
 // CORS Configuration
 const allowedOrigins = [
@@ -33,7 +36,17 @@ const allowedOrigins = [
 
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        console.log('❌ Blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -44,31 +57,101 @@ app.use(
 // Session Configuration
 app.use(
   session({
-    secret: process.env.SESSION_SECRET,
+    secret: process. env.SESSION_SECRET,
     resave: false,
     name: "wapda_session",
     saveUninitialized: false,
     store: MongoStore.create({
       mongoUrl: process.env.MONGO_URL,
       ttl: 24 * 60 * 60,
+      touchAfter: 24 * 3600, // Lazy session update
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production", // ✅ Changed back for local dev
+      secure: process.env. NODE_ENV === "production",
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // ✅ Changed back
+      sameSite: process.env. NODE_ENV === "production" ?  "none" : "lax",
       maxAge: 24 * 60 * 60 * 1000,
     },
   })
 );
 
-// Initialize Passport
+// Initialize Passport (MUST be after session middleware)
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Configure Passport using the User model
-passport.use(User.createStrategy());
-passport.serializeUser(User.serializeUser());
-passport.deserializeUser(User.deserializeUser());
+// ========================================
+// ✅ FIX: Configure DUAL Passport Strategies
+// ========================================
+
+// Engineer Strategy (uses email)
+passport.use('engineer-local', new LocalStrategy(
+  {
+    usernameField: 'email',
+    passwordField: 'password'
+  },
+  Engineer.authenticate()
+));
+
+// Departmental User Strategy (uses employeeId)
+passport.use('departmental-local', new LocalStrategy(
+  {
+    usernameField: 'employeeId',
+    passwordField: 'password'
+  },
+  DepartmentalUser.authenticate()
+));
+
+// ========================================
+// ✅ FIX: Serialize/Deserialize Both Models
+// ========================================
+
+passport.serializeUser((user, done) => {
+  // Determine user type based on model name or presence of employeeId
+  const userType = user.employeeId ? 'departmental' : 'engineer';
+  console.log('🔐 Serializing user:', { 
+    id: user._id, 
+    type: userType, 
+    name: user.name,
+    email: user.email,
+    employeeId: user.employeeId 
+  });
+  done(null, { id: user._id, type: userType });
+});
+
+passport.deserializeUser(async (data, done) => {
+  try {
+    console.log('🔓 Attempting to deserialize:', data);
+    
+    let user;
+    if (data.type === 'engineer') {
+      user = await Engineer.findById(data.id);
+      console.log('👤 Engineer lookup result:', user ?  `Found: ${user.name}` : 'NOT FOUND');
+    } else if (data.type === 'departmental') {
+      user = await DepartmentalUser.findById(data.id);
+      console.log('👤 Departmental user lookup result:', user ? `Found: ${user.name}` : 'NOT FOUND');
+    } else {
+      console.error('❌ Unknown user type:', data.type);
+      return done(null, false);
+    }
+    
+    if (!user) {
+      console. error('❌ User not found in database for ID:', data.id);
+      return done(null, false);
+    }
+    
+    console.log('✅ User deserialized successfully:', {
+      id: user._id,
+      name: user.name,
+      role: user.role,
+      type: data.type
+    });
+    
+    done(null, user);
+  } catch (err) {
+    console.error('❌ Deserialization error:', err);
+    done(err, null);
+  }
+});
 
 // Health Check Route
 app.get("/", (req, res) => {
@@ -78,21 +161,38 @@ app.get("/", (req, res) => {
   });
 });
 
-// Add after your health check route
+// CORS Test Route
 app.get("/test-cors", (req, res) => {
   res.json({
     message: "CORS is working!",
-    origin: req.headers.origin,
-    headers: res.getHeaders(),
+    origin: req. headers.origin,
+    cookies: req.cookies,
+    sessionID: req.sessionID,
   });
 });
 
-// Debug Middleware
+// ========================================
+// ✅ Enhanced Debug Middleware
+// ========================================
 app.use((req, res, next) => {
-  console.log("🔍 Headers:", req.headers.cookie);
-  console.log("🍪 Parsed Cookies:", req.cookies); // Should now show cookies
-  console.log("📝 Session ID:", req.sessionID);
-  console.log("✅ Authenticated:", req.isAuthenticated?.());
+  console. log('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  console.log('🌐 Request:', req.method, req.path);
+  console.log('📝 Session ID:', req.sessionID);
+  console.log('✅ Authenticated:', req.isAuthenticated?.());
+  console. log('👤 User:', req.user ?  {
+    id: req.user._id,
+    name: req. user.name,
+    role: req.user.role,
+    email: req.user.email,
+    employeeId: req. user.employeeId
+  } : 'None');
+  console.log('🔍 Cookie Header:', req.headers.cookie);
+  console.log('🍪 Parsed Cookies:', req.cookies);
+  console.log('📦 Session Data:', {
+    passport: req.session. passport,
+    cookie: req.session.cookie
+  });
+  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
   next();
 });
 
@@ -106,14 +206,22 @@ app.use((req, res) => {
 
 // Error Handler
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ error: "Something went wrong!" });
+  console.error('❌ Error:', err);
+  res.status(500).json({ 
+    error: "Something went wrong! ",
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
 // Start Server (only for local development)
 const PORT = process.env.PORT || 8000;
 if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  app. listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`🔐 Session Secret: ${process.env.SESSION_SECRET ?  'Set ✅' : 'NOT SET ❌'}`);
+    console.log(`💾 MongoDB: ${process.env.MONGO_URL ? 'Configured ✅' : 'NOT CONFIGURED ❌'}`);
+  });
 }
 
 // Export for Vercel

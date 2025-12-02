@@ -1,17 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const passport = require("passport");
-const LocalStrategy = require("passport-local").Strategy;
+const LocalStrategy = require("passport-local"). Strategy;
 
-const UserModel = require('../models/Users');
+const Engineer = require('../models/Users');
+const DepartmentalUser = require('../models/Emp');
 const ReportModel = require("../models/Report");
 
-// -----------------------------
-// 🔐 PASSPORT CONFIGURATION
-// -----------------------------
-passport.use(new LocalStrategy(UserModel.authenticate()));
-passport.serializeUser(UserModel.serializeUser());
-passport.deserializeUser(UserModel.deserializeUser());
 
 // -----------------------------
 // 🏠 BASIC ROUTE
@@ -23,62 +18,60 @@ router.get("/", (req, res) => {
 // -----------------------------
 // 👤 AUTH ROUTES
 // -----------------------------
-router.post("/registerUser", async (req, res) => {
-  try {
-    const { name, email, password, department, designation, role } = req.body;
 
-    const existingUser = await UserModel.findOne({ email });
-    if (existingUser)
+// Engineer Registration
+router.post("/engineer/register", async (req, res) => {
+  try {
+    const { name, email, password, department, designation, phoneNumber, role } = req.body;
+
+    const existingEngineer = await Engineer. findOne({ email });
+    if (existingEngineer)
       return res.status(400).json({ message: "Email already registered" });
 
-    const newUser = new UserModel({ 
+    const newEngineer = new Engineer({ 
       name, 
       email, 
       department,
       designation,
-      role: role || 'shift_engineer' // Default role
+      phoneNumber,
+      role: role || 'shift_engineer'
     });
     
-    await UserModel.register(newUser, password);
+    await Engineer.register(newEngineer, password);
 
-    passport.authenticate("local")(req, res, () => {
+    // ✅ FIX: Use correct strategy name
+    passport.authenticate("engineer-local")(req, res, () => {
       const safeUser = {
-        _id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        department: newUser.department,
-        designation: newUser.designation,
-        role: newUser.role,
+        _id: newEngineer._id,
+        name: newEngineer.name,
+        email: newEngineer.email,
+        department: newEngineer.department,
+        designation: newEngineer.designation,
+        role: newEngineer.role,
+        userType: 'engineer'
       };
-      res
-        .status(201)
-        .json({ message: "Registration successful", user: safeUser });
+      res.status(201).json({ message: "Registration successful", user: safeUser });
     });
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("Engineer registration error:", error);
     res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-router.post("/loginUser", (req, res, next) => {
-  passport.authenticate("local", (err, user, info) => {
+// Engineer Login
+router.post("/engineer/login", (req, res, next) => {
+  // ✅ FIX: Use correct strategy name
+  passport.authenticate("engineer-local", (err, user, info) => {
     if (err) return next(err);
-    if (!user)
-      return res
-        .status(401)
-        .json({ message: info?.message || "Invalid credentials" });
+    if (! user)
+      return res.status(401).json({ message: info?. message || "Invalid credentials" });
 
     req.logIn(user, (err) => {
-      if (err) {
-        console.error("Login error:", err);
-        return next(err);
-      }
+      if (err) return next(err);
 
       req.session.save((saveErr) => {
-        if (saveErr) {
-          console.error("Session save error:", saveErr);
+        if (saveErr)
           return res.status(500).json({ message: "Session creation failed" });
-        }
 
         const safeUser = {
           _id: user._id,
@@ -86,18 +79,87 @@ router.post("/loginUser", (req, res, next) => {
           email: user.email,
           department: user.department,
           role: user.role,
+          userType: 'engineer'
         };
-
-        console.log("✅ User logged in:", safeUser.email);
-        console.log("✅ Session:", req.session);
 
         res.status(200).json({
           message: "Login successful",
           user: safeUser,
-          debug: {
-            sessionID: req.sessionID,
-            hasSession: !!req.session,
-          },
+        });
+      });
+    });
+  })(req, res, next);
+});
+
+// Departmental User Registration
+router.post("/department/register", async (req, res) => {
+  try {
+    const { name, employeeId, password, department, designation, phoneNumber, email } = req.body;
+
+    const existingUser = await DepartmentalUser. findOne({ employeeId });
+    if (existingUser)
+      return res.status(400). json({ message: "Employee ID already registered" });
+
+    const newUser = new DepartmentalUser({ 
+      name, 
+      employeeId,
+      email, // Optional
+      department,
+      designation,
+      phoneNumber,
+      role: 'department'
+    });
+    
+    await DepartmentalUser. register(newUser, password);
+
+    // ✅ FIX: Use correct strategy name
+    passport.authenticate("departmental-local")(req, res, () => {
+      const safeUser = {
+        _id: newUser._id,
+        name: newUser.name,
+        employeeId: newUser.employeeId,
+        email: newUser.email,
+        department: newUser.department,
+        designation: newUser.designation,
+        role: newUser.role,
+        userType: 'departmental'
+      };
+      res.status(201).json({ message: "Registration successful", user: safeUser });
+    });
+  } catch (error) {
+    console. error("Departmental registration error:", error);
+    res. status(500).json({ message: "Server error during registration" });
+  }
+});
+
+// Departmental User Login
+router.post("/department/login", (req, res, next) => {
+  // ✅ FIX: Use correct strategy name
+  passport. authenticate("departmental-local", (err, user, info) => {
+    if (err) return next(err);
+    if (!user)
+      return res.status(401).json({ message: info?. message || "Invalid credentials" });
+
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+
+      req.session.save((saveErr) => {
+        if (saveErr)
+          return res.status(500).json({ message: "Session creation failed" });
+
+        const safeUser = {
+          _id: user._id,
+          name: user.name,
+          employeeId: user. employeeId,
+          email: user.email,
+          department: user.department,
+          role: user.role,
+          userType: 'departmental'
+        };
+
+        res.status(200).json({
+          message: "Login successful",
+          user: safeUser,
         });
       });
     });
@@ -105,7 +167,7 @@ router.post("/loginUser", (req, res, next) => {
 });
 
 router.get("/logout", (req, res, next) => {
-  req.logout((err) => {
+  req. logout((err) => {
     if (err) return next(err);
 
     req.session.destroy((err) => {
@@ -123,9 +185,18 @@ router.get("/logout", (req, res, next) => {
   });
 });
 
+// ✅ FIX: Check both models based on user type
 router.get("/userData", isLoggedIn, async (req, res) => {
   try {
-    const user = await UserModel.findById(req.user._id);
+    let user;
+    
+    // Check if user has employeeId (departmental) or email (engineer)
+    if (req.user.employeeId) {
+      user = await DepartmentalUser.findById(req.user._id);
+    } else {
+      user = await Engineer.findById(req.user._id);
+    }
+    
     res.json({ user });
   } catch (error) {
     console.error("Error fetching user data:", error);
@@ -133,14 +204,17 @@ router.get("/userData", isLoggedIn, async (req, res) => {
   }
 });
 
+// ✅ FIX: Include userType and handle both
 router.get("/checkAuth", (req, res) => {
   if (req.isAuthenticated()) {
     const safeUser = {
       _id: req.user._id,
       name: req.user.name,
       email: req.user.email,
-      department: req.user.department,
-      role: req.user.role,
+      employeeId: req.user.employeeId, // May be undefined for engineers
+      department: req.user. department,
+      role: req. user.role,
+      userType: req.user.employeeId ? 'departmental' : 'engineer'
     };
     res.json({ isLoggedIn: true, user: safeUser });
   } else {
@@ -148,14 +222,23 @@ router.get("/checkAuth", (req, res) => {
   }
 });
 
-// Get all users (Admin only)
+// ✅ FIX: Fetch from both collections or clarify purpose
 router.get("/users", isLoggedIn, async (req, res) => {
   try {
-    const users = await UserModel.find().select("-salt -hash");
-    res.json(users);
+    // Fetch both types of users
+    const engineers = await Engineer.find(). select("-salt -hash");
+    const departmentalUsers = await DepartmentalUser.find().select("-salt -hash");
+    
+    // Combine and add userType
+    const allUsers = [
+      ...engineers. map(u => ({ ...u. toObject(), userType: 'engineer' })),
+      ...departmentalUsers.map(u => ({ ...u.toObject(), userType: 'departmental' }))
+    ];
+    
+    res.json(allUsers);
   } catch (error) {
     console.error("Error fetching users:", error);
-    res.status(500).json({ message: "Error fetching users" });
+    res. status(500).json({ message: "Error fetching users" });
   }
 });
 
@@ -179,7 +262,7 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
     } = req.body;
 
     // Validation
-    if (!serialNo || !apparatus || !description) {
+    if (!serialNo || ! apparatus || !description) {
       return res.status(400).json({ 
         message: "Serial No, Apparatus, and Description are required" 
       });
@@ -195,14 +278,14 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
 
     const report = new ReportModel({
       serialNo,
-      date: date || new Date().toISOString().split('T')[0],
-      time: time || new Date().toTimeString().split(' ')[0].substring(0, 5),
+      date: date || new Date(). toISOString(). split('T')[0],
+      time: time || new Date().toTimeString().split(' ')[0]. substring(0, 5),
       apparatus,
       description,
       recommendation,
       operationAction,
       notifiedBy: req.user.name,
-      referTo: referTo || 'Electrical',
+      referTo: referTo || 'EME (P)',
       means: means || 'Telephone',
       status: 'Pending',
       currentStage: 'Department',
@@ -210,7 +293,7 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
       remarks: []
     });
 
-    await report.save();
+    await report. save();
 
     res.status(201).json({
       message: "Report created successfully",
@@ -220,7 +303,7 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
     console.error("Error creating report:", error);
     res.status(500).json({ 
       message: "Error creating report", 
-      error: error.message 
+      error: error. message 
     });
   }
 });
@@ -233,9 +316,9 @@ router.get("/reports", isLoggedIn, async (req, res) => {
 
     // Filter based on role
     if (role === 'department') {
-      query.referTo = department;
+      query. referTo = department;
       query.currentStage = 'Department';
-      query.status = { $nin: ['Closed', 'Rejected'] };
+      query.status = { $nin: ['Closed'] };
     } else if (role === 'oe') {
       query.currentStage = 'OE Department';
       query.status = { $nin: ['Closed'] };
@@ -245,7 +328,7 @@ router.get("/reports", isLoggedIn, async (req, res) => {
     // shift_engineer and admin can see all reports
 
     const reports = await ReportModel.find(query)
-      .sort({ createdAt: -1 })
+      . sort({ createdAt: -1 })
       .populate('createdBy', 'name email');
 
     res.json(reports);
@@ -283,7 +366,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
       });
     }
 
-    const report = await ReportModel.findById(req.params.id);
+    const report = await ReportModel. findById(req.params.id);
     
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
@@ -291,7 +374,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
 
     // Verify user is from the correct department
     if (req.user.department !== report.referTo) {
-      return res.status(403).json({ 
+      return res. status(403).json({ 
         message: "You can only update reports assigned to your department" 
       });
     }
@@ -300,12 +383,12 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
     report.status = 'Under Review';
     report.currentStage = 'OE Department';
     report.remarks.push({
-      user: req.user.name,
+      user: req.user. name,
       text: `Department action submitted: ${departmentAction}`,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(). toISOString(),
     });
 
-    await report.save();
+    await report. save();
 
     res.json({
       message: "Department action added successfully",
@@ -315,7 +398,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
     console.error("Error updating report:", error);
     res.status(500).json({ 
       message: "Error updating report", 
-      error: error.message 
+      error: error. message 
     });
   }
 });
@@ -323,13 +406,13 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
 // Add remark to report
 router.post("/reports/:id/remarks", isLoggedIn, async (req, res) => {
   try {
-    const { text } = req.body;
+    const { text } = req. body;
 
     if (!text) {
       return res.status(400).json({ message: "Remark text is required" });
     }
 
-    const report = await ReportModel.findById(req.params.id);
+    const report = await ReportModel.findById(req. params.id);
     
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
@@ -338,7 +421,7 @@ router.post("/reports/:id/remarks", isLoggedIn, async (req, res) => {
     report.remarks.push({
       user: req.user.name,
       text,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(). toISOString(),
     });
 
     await report.save();
@@ -349,7 +432,7 @@ router.post("/reports/:id/remarks", isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding remark:", error);
-    res.status(500).json({ message: "Error adding remark" });
+    res. status(500).json({ message: "Error adding remark" });
   }
 });
 
@@ -360,14 +443,14 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
     // action can be: 'approve', 'reject', or 'refer'
 
     if (!action || !['approve', 'reject', 'refer'].includes(action)) {
-      return res.status(400).json({ 
+      return res.status(400). json({ 
         message: "Valid action required (approve, reject, or refer)" 
       });
     }
 
     // Verify user is OE
     if (req.user.role !== 'oe') {
-      return res.status(403).json({ 
+      return res.status(403). json({ 
         message: "Only OE Department can perform this action" 
       });
     }
@@ -394,7 +477,7 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
         // Approve and forward to Resident Engineer
         newStatus = 'Under Review';
         newStage = 'Resident Engineer';
-        remarkText = 'Report verified and approved by OE Department. Forwarded to Resident Engineer for final review.';
+        remarkText = 'Report verified and approved by OE Department.  Forwarded to Resident Engineer for final review.';
         break;
 
       case 'reject':
@@ -406,8 +489,8 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
 
       case 'refer':
         // Refer to another department
-        if (!department) {
-          return res.status(400).json({ 
+        if (! department) {
+          return res. status(400).json({ 
             message: "Department is required for refer action" 
           });
         }
@@ -416,13 +499,13 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
         newStage = 'Department';
         
         // Update the referTo field to the new department
-        report.referTo = department;
+        report. referTo = department;
         
         remarkText = `Report referred to ${department} department for further action.`;
         break;
 
       default:
-        return res.status(400).json({ message: "Invalid action" });
+        return res. status(400).json({ message: "Invalid action" });
     }
 
     // Add custom remark if provided
@@ -436,9 +519,9 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
     
     // Add remark to history
     report.remarks.push({
-      user: req.user.name,
+      user: req.user. name,
       text: remarkText,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(). toISOString(),
     });
 
     await report.save();
@@ -466,7 +549,7 @@ router.get("/reports/oe/pending", isLoggedIn, async (req, res) => {
     const reports = await ReportModel.find({
       currentStage: 'OE Department',
       status: { $nin: ['Closed'] }
-    }).sort({ createdAt: -1 });
+    }). sort({ createdAt: -1 });
 
     res.json({
       count: reports.length,
@@ -483,7 +566,7 @@ router.post("/reports/:id/oe-remark", isLoggedIn, async (req, res) => {
   try {
     const { text } = req.body;
 
-    if (!text || !text.trim()) {
+    if (!text || ! text.trim()) {
       return res.status(400).json({ 
         message: "Remark text is required" 
       });
@@ -496,7 +579,7 @@ router.post("/reports/:id/oe-remark", isLoggedIn, async (req, res) => {
       });
     }
 
-    const report = await ReportModel.findById(req.params.id);
+    const report = await ReportModel.findById(req. params.id);
     
     if (!report) {
       return res.status(404).json({ message: "Report not found" });
@@ -506,7 +589,7 @@ router.post("/reports/:id/oe-remark", isLoggedIn, async (req, res) => {
     report.remarks.push({
       user: req.user.name,
       text: text.trim(),
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(). toISOString(),
     });
 
     await report.save();
@@ -517,7 +600,7 @@ router.post("/reports/:id/oe-remark", isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding remark:", error);
-    res.status(500).json({ message: "Error adding remark" });
+    res. status(500).json({ message: "Error adding remark" });
   }
 });
 
@@ -526,7 +609,7 @@ router.put("/reports/:id/resident-action", isLoggedIn, async (req, res) => {
   try {
     const { action, revisionReason } = req.body; // 'close', 'reject', or 'revision'
 
-    if (!action || !['close', 'reject', 'revision'].includes(action)) {
+    if (!action || ! ['close', 'reject', 'revision'].includes(action)) {
       return res.status(400).json({ 
         message: "Valid action required (close, reject, or revision)" 
       });
@@ -554,16 +637,16 @@ router.put("/reports/:id/resident-action", isLoggedIn, async (req, res) => {
         timestamp: new Date().toISOString(),
       });
     } else if (action === 'reject') {
-      report.status = 'Rejected';
+      report. status = 'Rejected';
       report.currentStage = 'Completed';
-      report.remarks.push({
+      report. remarks.push({
         user: req.user.name,
         text: 'Report rejected by Resident Engineer',
         timestamp: new Date().toISOString(),
       });
     } else {
       if (!revisionReason) {
-        return res.status(400).json({ 
+        return res.status(400). json({ 
           message: "Revision reason is required" 
         });
       }
@@ -572,11 +655,11 @@ router.put("/reports/:id/resident-action", isLoggedIn, async (req, res) => {
       report.remarks.push({
         user: req.user.name,
         text: `Sent back for revision: ${revisionReason}`,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date(). toISOString(),
       });
     }
 
-    await report.save();
+    await report. save();
 
     res.json({
       message: `Report ${action} action completed successfully`,
@@ -591,7 +674,7 @@ router.put("/reports/:id/resident-action", isLoggedIn, async (req, res) => {
 // Get reports statistics
 router.get("/reports/stats/summary", isLoggedIn, async (req, res) => {
   try {
-    const totalReports = await ReportModel.countDocuments();
+    const totalReports = await ReportModel. countDocuments();
     const pendingReports = await ReportModel.countDocuments({ 
       status: 'Pending' 
     });
@@ -614,7 +697,7 @@ router.get("/reports/stats/summary", isLoggedIn, async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching statistics:", error);
-    res.status(500).json({ message: "Error fetching statistics" });
+    res.status(500). json({ message: "Error fetching statistics" });
   }
 });
 
@@ -622,69 +705,134 @@ router.get("/reports/stats/summary", isLoggedIn, async (req, res) => {
 // 🛡️ ADMIN ROUTES
 // -----------------------------
 
+// ✅ FIX: Handle both models in admin routes
+
 // Get all users (Admin only)
 router.get("/admin/users", isLoggedIn, isAdmin, async (req, res) => {
   try {
-    const users = await UserModel.find()
+    const engineers = await Engineer.find()
       .select("-salt -hash")
       .sort({ createdAt: -1 });
-    res.json(users);
+    
+    const departmentalUsers = await DepartmentalUser.find()
+      .select("-salt -hash")
+      .sort({ createdAt: -1 });
+    
+    // Combine and mark user types
+    const allUsers = [
+      ...engineers.map(u => ({ ...u. toObject(), userType: 'engineer' })),
+      ...departmentalUsers.map(u => ({ ...u.toObject(), userType: 'departmental' }))
+    ];
+    
+    res.json(allUsers);
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ message: "Error fetching users" });
   }
 });
 
-// Create new user (Admin only)
+// Create new user (Admin only) - Updated to handle both types
 router.post("/admin/users", isLoggedIn, isAdmin, async (req, res) => {
   try {
-    const { username, password, role, name, email, department, designation } = req.body;
+    const { 
+      username, 
+      password, 
+      role, 
+      name, 
+      email, 
+      employeeId, 
+      department, 
+      designation,
+      userType // 'engineer' or 'departmental'
+    } = req. body;
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "Username and password are required" });
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
     }
 
-    // Check if user already exists
-    const existingUser = await UserModel.findOne({ 
-      email: email || `${username}@wapda.local`
-    });
-    
-    if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const newUser = new UserModel({
-      name: name || username,
-      email: email || `${username}@wapda.local`,
-      department: department || 'General',
-      designation: designation || role || 'Staff',
-      role: role || 'shift_engineer',
-      active: true
-    });
-
-    await UserModel.register(newUser, password);
-
-    res.status(201).json({
-      message: "User created successfully",
-      user: {
-        _id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        department: newUser.department,
-        active: newUser.active
+    if (userType === 'departmental') {
+      // Create departmental user
+      if (!employeeId) {
+        return res.status(400).json({ message: "Employee ID is required for departmental users" });
       }
-    });
+
+      const existingUser = await DepartmentalUser.findOne({ employeeId });
+      if (existingUser) {
+        return res.status(400).json({ message: "Employee ID already exists" });
+      }
+
+      const newUser = new DepartmentalUser({
+        name: name || username,
+        employeeId,
+        email,
+        department: department || 'General',
+        designation: designation || 'Staff',
+        role: role || 'resident_engineer',
+        status: 'active'
+      });
+
+      await DepartmentalUser.register(newUser, password);
+
+      res.status(201).json({
+        message: "Departmental user created successfully",
+        user: {
+          _id: newUser._id,
+          name: newUser.name,
+          employeeId: newUser.employeeId,
+          email: newUser.email,
+          role: newUser.role,
+          department: newUser.department,
+          status: newUser.status,
+          userType: 'departmental'
+        }
+      });
+    } else {
+      // Create engineer user
+      if (!email && !username) {
+        return res.status(400).json({ message: "Email is required for engineers" });
+      }
+
+      const userEmail = email || `${username}@wapda.local`;
+      const existingUser = await Engineer.findOne({ email: userEmail });
+      
+      if (existingUser) {
+        return res.status(400).json({ message: "Email already exists" });
+      }
+
+      const newUser = new Engineer({
+        name: name || username,
+        email: userEmail,
+        department: department || 'General',
+        designation: designation || role || 'Staff',
+        role: role || 'shift_engineer',
+        status: 'active'
+      });
+
+      await Engineer.register(newUser, password);
+
+      res.status(201).json({
+        message: "Engineer user created successfully",
+        user: {
+          _id: newUser._id,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role,
+          department: newUser.department,
+          status: newUser.status,
+          userType: 'engineer'
+        }
+      });
+    }
   } catch (error) {
     console.error("Error creating user:", error);
-    res.status(500).json({ 
+    res. status(500).json({ 
       message: "Error creating user", 
-      error: error.message 
+      error: error. message 
     });
   }
 });
 
-// Delete user (Admin only)
+// Delete user (Admin only) - Updated to handle both types
 router.delete("/admin/users/:id", isLoggedIn, isAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
@@ -696,7 +844,14 @@ router.delete("/admin/users/:id", isLoggedIn, isAdmin, async (req, res) => {
       });
     }
 
-    const user = await UserModel.findByIdAndDelete(userId);
+    // Try deleting from both collections
+    let user = await Engineer.findByIdAndDelete(userId);
+    let userType = 'engineer';
+    
+    if (! user) {
+      user = await DepartmentalUser.findByIdAndDelete(userId);
+      userType = 'departmental';
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -707,16 +862,18 @@ router.delete("/admin/users/:id", isLoggedIn, isAdmin, async (req, res) => {
       deletedUser: {
         _id: user._id,
         name: user.name,
-        email: user.email
+        email: user.email || undefined,
+        employeeId: user.employeeId || undefined,
+        userType
       }
     });
   } catch (error) {
     console.error("Error deleting user:", error);
-    res.status(500).json({ message: "Error deleting user" });
+    res.status(500). json({ message: "Error deleting user" });
   }
 });
 
-// Toggle user status (Admin only)
+// Toggle user status (Admin only) - Updated to handle both types
 router.put("/admin/users/:id/status", isLoggedIn, isAdmin, async (req, res) => {
   try {
     const { active } = req.body;
@@ -726,8 +883,8 @@ router.put("/admin/users/:id/status", isLoggedIn, isAdmin, async (req, res) => {
 
     // Validate active parameter
     if (typeof active !== 'boolean') {
-      return res.status(400).json({ 
-        message: "Invalid active status. Must be true or false." 
+      return res.status(400). json({ 
+        message: "Invalid active status.  Must be true or false." 
       });
     }
 
@@ -741,21 +898,37 @@ router.put("/admin/users/:id/status", isLoggedIn, isAdmin, async (req, res) => {
     // Convert boolean to status string
     const newStatus = active ? 'active' : 'disabled';
 
-    const user = await UserModel.findByIdAndUpdate(
+    // Try updating Engineer first
+    let user = await Engineer. findByIdAndUpdate(
       userId,
       { status: newStatus },
       { new: true, runValidators: false }
-    ).select("-salt -hash");
+    ). select("-salt -hash");
+
+    let userType = 'engineer';
+
+    // If not found, try DepartmentalUser
+    if (!user) {
+      user = await DepartmentalUser.findByIdAndUpdate(
+        userId,
+        { status: newStatus },
+        { new: true, runValidators: false }
+      ).select("-salt -hash");
+      userType = 'departmental';
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    console.log('User status updated:', { userId: user._id, status: user.status });
+    console.log('User status updated:', { userId: user._id, status: user. status, userType });
 
     res.json({
       message: `User ${active ? 'enabled' : 'disabled'} successfully`,
-      user
+      user: {
+        ... user.toObject(),
+        userType
+      }
     });
   } catch (error) {
     console.error("Error updating user status:", error);
@@ -769,7 +942,7 @@ router.put("/admin/users/:id/status", isLoggedIn, isAdmin, async (req, res) => {
 // Get all reports (Admin override - see all reports)
 router.get("/admin/reports", isLoggedIn, isAdmin, async (req, res) => {
   try {
-    const reports = await ReportModel.find()
+    const reports = await ReportModel. find()
       .sort({ createdAt: -1 })
       .populate('createdBy', 'name email');
 
@@ -788,7 +961,7 @@ router.put("/admin/reports/:id", isLoggedIn, isAdmin, async (req, res) => {
 
     // Remove fields that shouldn't be directly updated
     delete updateData._id;
-    delete updateData.createdBy;
+    delete updateData. createdBy;
     delete updateData.createdAt;
 
     const report = await ReportModel.findByIdAndUpdate(
@@ -805,7 +978,7 @@ router.put("/admin/reports/:id", isLoggedIn, isAdmin, async (req, res) => {
     report.remarks.push({
       user: `${req.user.name} (Admin)`,
       text: "Report edited by administrator",
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(). toISOString(),
     });
 
     await report.save();
@@ -824,14 +997,14 @@ router.put("/admin/reports/:id", isLoggedIn, isAdmin, async (req, res) => {
 });
 
 // Delete report (Admin only)
-router.delete("/admin/reports/:id", isLoggedIn, isAdmin, async (req, res) => {
+router. delete("/admin/reports/:id", isLoggedIn, isAdmin, async (req, res) => {
   try {
     const reportId = req.params.id;
 
     const report = await ReportModel.findByIdAndDelete(reportId);
 
     if (!report) {
-      return res.status(404).json({ message: "Report not found" });
+      return res.status(404). json({ message: "Report not found" });
     }
 
     res.json({
@@ -859,7 +1032,7 @@ function isAdmin(req, res, next) {
   if (req.isAuthenticated() && req.user.role === 'admin') {
     return next();
   }
-  res.status(403).json({ message: "Access denied. Admin privileges required." });
+  res.status(403). json({ message: "Access denied.  Admin privileges required." });
 }
 
 module.exports = router;
