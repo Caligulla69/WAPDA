@@ -9,6 +9,8 @@ import {
   Phone,
   Briefcase,
   Building2,
+  Shield,
+  AlertCircle,
 } from "lucide-react";
 import API_URL from "../../utils/api";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +25,7 @@ export default function ModernWhiteAuthForm() {
     confirmPassword: "",
     phoneNumber: "",
     department: "EME (P)",
+    role: "shift_engineer", // ✅ Default role
   });
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState("");
@@ -34,8 +37,10 @@ export default function ModernWhiteAuthForm() {
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [e.target. name]: e.target.value,
     });
+    setErrorMessage("");
+    setValidationErrors({});
   };
 
   const handleSubmit = async (e) => {
@@ -57,7 +62,7 @@ export default function ModernWhiteAuthForm() {
 
       const payload = isLogin
         ? {
-            email: formData.email, // ✅ Email for engineers
+            email: formData.email,
             password: formData.password,
           }
         : {
@@ -66,7 +71,7 @@ export default function ModernWhiteAuthForm() {
             department: formData.department,
             email: formData.email,
             password: formData.password,
-            role: formData.role || "shift_engineer",
+            role: formData.role, // ✅ Include selected role
           };
 
       const response = await fetch(endpoint, {
@@ -80,12 +85,12 @@ export default function ModernWhiteAuthForm() {
 
       const data = await response.json();
 
-      if (!response.ok) throw new Error(data.message || "Something went wrong");
+      if (! response.ok) throw new Error(data.message || "Something went wrong");
 
       setActionSuccess(true);
-      console.log(data.user);
+      console.log(data. user);
 
-      if (data?.user?.role) {
+      if (data?. user?.role) {
         const role = data.user.role;
 
         setTimeout(() => {
@@ -161,30 +166,39 @@ export default function ModernWhiteAuthForm() {
 
           {/* Error/Success Messages */}
           {errorMessage && (
-            <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded">
-              {errorMessage}
+            <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{errorMessage}</span>
             </div>
           )}
           {actionSuccess && (
             <div className="mb-6 p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded">
-              Success! Redirecting...
+              Success! Redirecting... 
             </div>
           )}
 
           {/* Mode toggle */}
           <div className="flex mb-8">
             <button
-              onClick={() => setIsLogin(true)}
+              onClick={() => {
+                setIsLogin(true);
+                setErrorMessage("");
+                setActionSuccess(false);
+              }}
               className={`flex-1 pb-3 text-center transition-all duration-500 border-b-2 ${
                 isLogin
-                  ? "text-stone-800 border-stone-800"
+                  ?  "text-stone-800 border-stone-800"
                   : "text-stone-400 border-transparent hover:text-stone-600"
               }`}
             >
               <span className="font-light text-sm tracking-wide">SIGN IN</span>
             </button>
             <button
-              onClick={() => setIsLogin(false)}
+              onClick={() => {
+                setIsLogin(false);
+                setErrorMessage("");
+                setActionSuccess(false);
+              }}
               className={`flex-1 pb-3 text-center transition-all duration-500 border-b-2 ${
                 !isLogin
                   ? "text-stone-800 border-stone-800"
@@ -224,7 +238,7 @@ export default function ModernWhiteAuthForm() {
                 <User
                   className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 ${
                     focusedField === "name"
-                      ? "text-stone-800"
+                      ?  "text-stone-800"
                       : "text-stone-400"
                   }`}
                 />
@@ -248,7 +262,7 @@ export default function ModernWhiteAuthForm() {
                 htmlFor="email"
                 className={`absolute left-0 transition-all duration-300 pointer-events-none font-light ${
                   focusedField === "email" || formData.email
-                    ? "-top-5 text-xs text-stone-600"
+                    ?  "-top-5 text-xs text-stone-600"
                     : "top-4 text-stone-400"
                 }`}
               >
@@ -256,7 +270,7 @@ export default function ModernWhiteAuthForm() {
               </label>
               <Mail
                 className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 ${
-                  focusedField === "email" ? "text-stone-800" : "text-stone-400"
+                  focusedField === "email" ?  "text-stone-800" : "text-stone-400"
                 }`}
               />
             </div>
@@ -267,7 +281,7 @@ export default function ModernWhiteAuthForm() {
                 <input
                   type="tel"
                   name="phoneNumber"
-                  value={formData.phoneNumber}
+                  value={formData. phoneNumber}
                   onChange={handleInputChange}
                   onFocus={() => setFocusedField("phoneNumber")}
                   onBlur={() => setFocusedField("")}
@@ -288,32 +302,31 @@ export default function ModernWhiteAuthForm() {
                 <Phone
                   className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 ${
                     focusedField === "phoneNumber"
-                      ? "text-stone-800"
+                      ?  "text-stone-800"
                       : "text-stone-400"
                   }`}
                 />
               </div>
             )}
 
-         
             {/* Department field */}
             {!isLogin && (
               <div className="relative">
                 <select
                   name="department"
-                  value={formData.department}
+                  value={formData. department}
                   onChange={handleInputChange}
                   onFocus={() => setFocusedField("department")}
                   onBlur={() => setFocusedField("")}
                   className="w-full px-0 py-4 bg-transparent border-0 border-b border-stone-300 text-stone-800 focus:border-stone-800 focus:outline-none transition-colors duration-300 font-light text-lg appearance-none cursor-pointer"
                   id="department"
                 >
-                  <option value=" EME (P)"> EME (P)</option>
+                  <option value="EME (P)">EME (P)</option>
                   <option value="EME (SY)">EME (SY)</option>
                   <option value="P&IE">P&IE</option>
-                  <option value=" MME (P)"> MME (P)</option>
+                  <option value="MME (P)">MME (P)</option>
                   <option value="MME (A)">MME (A)</option>
-                  <option value="XEN (BARAL)">XEN (BARAL)</option>
+                  <option value="XEN (BARAL)">XEN (BARAL)</option>
                   <option value="SOS">SOS</option>
                   <option value="OE">OE</option>
                   <option value="ITRE">ITRE</option>
@@ -327,6 +340,38 @@ export default function ModernWhiteAuthForm() {
                 <Building2
                   className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 pointer-events-none ${
                     focusedField === "department"
+                      ? "text-stone-800"
+                      : "text-stone-400"
+                  }`}
+                />
+              </div>
+            )}
+
+            {/* ✅ Role field - NEW */}
+            {! isLogin && (
+              <div className="relative">
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  onFocus={() => setFocusedField("role")}
+                  onBlur={() => setFocusedField("")}
+                  className="w-full px-0 py-4 bg-transparent border-0 border-b border-stone-300 text-stone-800 focus:border-stone-800 focus:outline-none transition-colors duration-300 font-light text-lg appearance-none cursor-pointer"
+                  id="role"
+                >
+                  <option value="shift_engineer">Shift Engineer</option>
+                  <option value="oe">OE (Operations Engineer)</option>
+                  <option value="resident_engineer">Resident Engineer</option>
+                </select>
+                <label
+                  htmlFor="role"
+                  className="absolute left-0 -top-5 text-xs text-stone-600 pointer-events-none font-light"
+                >
+                  Role 
+                </label>
+                <Shield
+                  className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 pointer-events-none ${
+                    focusedField === "role"
                       ? "text-stone-800"
                       : "text-stone-400"
                   }`}
@@ -351,7 +396,7 @@ export default function ModernWhiteAuthForm() {
                 htmlFor="password"
                 className={`absolute left-0 transition-all duration-300 pointer-events-none font-light ${
                   focusedField === "password" || formData.password
-                    ? "-top-5 text-xs text-stone-600"
+                    ?  "-top-5 text-xs text-stone-600"
                     : "top-4 text-stone-400"
                 }`}
               >
@@ -385,12 +430,12 @@ export default function ModernWhiteAuthForm() {
                 <input
                   type={showPassword ? "text" : "password"}
                   name="confirmPassword"
-                  value={formData.confirmPassword}
+                  value={formData. confirmPassword}
                   onChange={handleInputChange}
                   onFocus={() => setFocusedField("confirmPassword")}
                   onBlur={() => setFocusedField("")}
                   className={`w-full px-0 py-4 bg-transparent border-0 border-b border-stone-300 text-stone-800 placeholder-transparent focus:border-stone-800 focus:outline-none transition-colors duration-300 font-light text-lg pr-12 ${
-                    validationErrors.confirmPassword ? "border-red-500" : ""
+                    validationErrors.confirmPassword ?  "border-red-500" : ""
                   }`}
                   placeholder="Confirm Password"
                   id="confirmPassword"
@@ -409,7 +454,7 @@ export default function ModernWhiteAuthForm() {
                 <Lock
                   className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 ${
                     focusedField === "confirmPassword"
-                      ? "text-stone-800"
+                      ?  "text-stone-800"
                       : "text-stone-400"
                   }`}
                 />
@@ -420,6 +465,8 @@ export default function ModernWhiteAuthForm() {
                 )}
               </div>
             )}
+
+          
 
             {/* Forgot password */}
             {isLogin && (
@@ -434,7 +481,7 @@ export default function ModernWhiteAuthForm() {
             <button
               onClick={handleSubmit}
               disabled={isLoading}
-              className="w-full group bg-stone-900 hover:bg-stone-800 text-white py-4 transition-all duration-300 disabled:opacity-70 mt-8 relative overflow-hidden"
+              className="w-full group bg-stone-900 hover:bg-stone-800 text-white py-4 transition-all duration-300 disabled:opacity-70 mt-8 relative overflow-hidden rounded"
             >
               <span className="relative z-10 flex items-center justify-center font-light text-sm tracking-wide">
                 {isLoading ? (
