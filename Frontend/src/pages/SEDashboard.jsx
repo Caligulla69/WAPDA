@@ -353,25 +353,52 @@ export default function ShiftEngineerDashboard() {
     });
   }, [reports, searchTerm, statusFilter]);
 
-  const handleSubmit = async () => {
-    if (!formData.serialNo || !formData.description || !formData.apparatus) {
-      alert(
-        "Please fill all required fields (Serial No, Apparatus, Description)"
-      );
-      return;
+const handleSubmit = async () => {
+  // Validate required fields
+  if (!formData. serialNo || !formData.description || !formData.apparatus) {
+    alert(
+      "Please fill all required fields (Serial No, Apparatus, Description)"
+    );
+    return;
+  }
+
+  try {
+ 
+
+    // Send POST request to backend
+    const response = await fetch(`${API_URL}/createReport`, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        serialNo: formData. serialNo,
+        date: formData.date,
+        time: formData.time,
+        apparatus: formData.apparatus,
+        description: formData.description,
+        recommendation: formData.recommendation,
+        operationAction: formData.operationAction,
+        referTo: formData.referTo,
+        means: formData.means,
+      }),
+    });
+
+    // Parse response
+    const data = await response. json();
+
+    // Handle errors
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to create report");
     }
 
-    const newReport = {
-      _id: Date.now().toString(),
-      ...formData,
-      status: "Pending",
-      notifiedBy: "Current User",
-      currentStage: "Initial Review",
-      priority: "Medium",
-      remarks: [],
-    };
+    console.log("✅ Report created successfully:", data);
 
-    setReports([newReport, ...reports]);
+    // Add the new report to the local state
+    setReports([data. report, ...reports]);
+
+    // Reset form
     setFormData({
       serialNo: "",
       date: new Date().toISOString().split("T")[0],
@@ -383,9 +410,17 @@ export default function ShiftEngineerDashboard() {
       referTo: "EME (P)",
       means: "Telephone",
     });
+
+    // Close form
     setShowForm(false);
+
+    // Show success message
     alert("Report created successfully!");
-  };
+  } catch (error) {
+    console.error("❌ Error creating report:", error);
+    alert(`Failed to create report: ${error.message}`);
+  }
+};
 
   const handleAddRemark = async (reportId, text) => {
     const newRemark = {

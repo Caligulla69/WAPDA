@@ -24,7 +24,6 @@ export default function DepartmentEmployeeAuth() {
     password: "",
     confirmPassword: "",
     phoneNumber: "",
-    designation: "",
     department: "EME (P)",
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -70,7 +69,6 @@ export default function DepartmentEmployeeAuth() {
         : {
             name: formData.name,
             employeeId: formData.employeeId, // ✅ Required
-            designation: formData.designation,
             phoneNumber: formData.phoneNumber,
             department: formData.department,
             email: formData.email, // Optional
@@ -104,7 +102,6 @@ export default function DepartmentEmployeeAuth() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-stone-50 flex">
@@ -238,6 +235,7 @@ export default function DepartmentEmployeeAuth() {
                 <option value="MME (A)">MME (A)</option>
                 <option value="XEN (BARAL)">XEN (BARAL)</option>
                 <option value="SOS">SOS</option>
+                <option value="OE">OE</option>
                 <option value="ITRE">ITRE</option>
               </select>
               <label
@@ -348,40 +346,6 @@ export default function DepartmentEmployeeAuth() {
                 <Phone
                   className={`absolute right-0 top-3 sm:top-4 w-5 h-5 transition-colors duration-300 ${
                     focusedField === "phoneNumber"
-                      ? "text-stone-800"
-                      : "text-stone-400"
-                  }`}
-                />
-              </div>
-            )}
-
-            {/* Designation field */}
-            {!isLogin && (
-              <div className="relative">
-                <input
-                  type="text"
-                  name="designation"
-                  value={formData.designation}
-                  onChange={handleInputChange}
-                  onFocus={() => setFocusedField("designation")}
-                  onBlur={() => setFocusedField("")}
-                  className="w-full px-0 py-3 sm:py-4 bg-transparent border-0 border-b border-stone-300 text-stone-800 placeholder-transparent focus:border-stone-800 focus:outline-none transition-colors duration-300 font-light text-base sm:text-lg"
-                  placeholder="Designation"
-                  id="designation"
-                />
-                <label
-                  htmlFor="designation"
-                  className={`absolute left-0 transition-all duration-300 pointer-events-none font-light ${
-                    focusedField === "designation" || formData.designation
-                      ? "-top-5 text-xs text-stone-600"
-                      : "top-3 sm:top-4 text-sm sm:text-base text-stone-400"
-                  }`}
-                >
-                  Designation
-                </label>
-                <Briefcase
-                  className={`absolute right-0 top-3 sm:top-4 w-5 h-5 transition-colors duration-300 ${
-                    focusedField === "designation"
                       ? "text-stone-800"
                       : "text-stone-400"
                   }`}

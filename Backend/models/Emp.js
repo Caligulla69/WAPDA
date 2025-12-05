@@ -40,10 +40,7 @@ const departmentalUserSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    designation: {
-      type: String,
-      trim: true,
-    },
+   
   },
   {
     timestamps: true,

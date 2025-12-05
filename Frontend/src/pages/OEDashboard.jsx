@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Loader2,
   LogOut,
+  ArrowLeft,
 } from "lucide-react";
 import API_URL from "../../utils/api";
 import { logout } from "../../utils/logout";
@@ -66,12 +67,12 @@ const ReportCard = ({ report, onClick }) => {
       configs[status] || {
         color: "bg-blue-50 text-blue-800 border-blue-200",
         icon: FileText,
-        label: status?.toUpperCase() || "OPEN",
+        label: status?. toUpperCase() || "OPEN",
       }
     );
   };
 
-  const statusConfig = getStatusConfig(report.status);
+  const statusConfig = getStatusConfig(report. status);
   const StatusIcon = statusConfig.icon;
 
   return (
@@ -87,19 +88,19 @@ const ReportCard = ({ report, onClick }) => {
             </div>
             <div>
               <h3 className="font-light text-stone-800 text-lg tracking-wide">
-                {report.serialNo}
+                {report. serialNo}
               </h3>
               <p className="text-xs text-stone-500 font-light mt-0.5">
-                {report.referTo} Department
+                {report. referTo} Department
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
             <span
-              className={`px-3 py-1.5 text-xs font-light border ${statusConfig.color} flex items-center gap-1.5`}
+              className={`px-3 py-1. 5 text-xs font-light border ${statusConfig.color} flex items-center gap-1. 5`}
             >
-              <StatusIcon className="w-3.5 h-3.5" />
+              <StatusIcon className="w-3. 5 h-3.5" />
               {statusConfig.label}
             </span>
             <ChevronRight className="w-5 h-5 text-stone-400 group-hover:text-stone-800 group-hover:translate-x-1 transition-all" />
@@ -137,7 +138,7 @@ const ReportCard = ({ report, onClick }) => {
           </div>
           <div className="flex items-center gap-2">
             <User className="w-4 h-4" />
-            <span>{report.notifiedBy}</span>
+            <span>{report. notifiedBy}</span>
           </div>
         </div>
       </div>
@@ -153,6 +154,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
   const [selectedAction, setSelectedAction] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [actionRemark, setActionRemark] = useState("");
+  const [revisionReason, setRevisionReason] = useState("");
 
   const handleAddRemark = async () => {
     if (!remarkText.trim()) return;
@@ -167,11 +169,18 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
     setShowActionModal(true);
     setSelectedDepartment(report.referTo || "");
     setActionRemark("");
+    setRevisionReason("");
   };
 
   const handleConfirmAction = async () => {
+    // Validation
     if (selectedAction === "refer" && !selectedDepartment) {
       alert("Please select a department");
+      return;
+    }
+
+    if (selectedAction === "revision" && !revisionReason.trim()) {
+      alert("Please provide a reason for revision");
       return;
     }
 
@@ -181,6 +190,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
       await onAction(report._id, selectedAction, {
         department: selectedDepartment,
         remark: actionRemark,
+        revisionReason: revisionReason,
       });
 
       setActionType("");
@@ -218,7 +228,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                 <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
                   STATUS
                 </p>
-                <p className="text-stone-800 font-light">{report.status}</p>
+                <p className="text-stone-800 font-light">{report. status}</p>
               </div>
               <div className="bg-white border border-stone-200 p-4">
                 <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
@@ -230,7 +240,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                 <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
                   REPORTED BY
                 </p>
-                <p className="text-stone-800 font-light">{report.notifiedBy}</p>
+                <p className="text-stone-800 font-light">{report. notifiedBy}</p>
               </div>
             </div>
 
@@ -250,23 +260,27 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
               </p>
             </div>
 
-            <div className="bg-white border border-stone-200 p-6">
-              <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
-                RECOMMENDATION
-              </label>
-              <p className="text-stone-800 font-light leading-relaxed">
-                {report.recommendation}
-              </p>
-            </div>
+            {report.recommendation && (
+              <div className="bg-white border border-stone-200 p-6">
+                <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
+                  RECOMMENDATION
+                </label>
+                <p className="text-stone-800 font-light leading-relaxed">
+                  {report.recommendation}
+                </p>
+              </div>
+            )}
 
-            <div className="bg-white border border-stone-200 p-6">
-              <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
-                OPERATION ACTION TAKEN
-              </label>
-              <p className="text-stone-800 font-light leading-relaxed">
-                {report.operationAction}
-              </p>
-            </div>
+            {report.operationAction && (
+              <div className="bg-white border border-stone-200 p-6">
+                <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
+                  OPERATION ACTION TAKEN
+                </label>
+                <p className="text-stone-800 font-light leading-relaxed">
+                  {report.operationAction}
+                </p>
+              </div>
+            )}
 
             {report.departmentAction && (
               <div className="bg-stone-50 border border-stone-300 p-6">
@@ -290,10 +304,10 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                       <div className="flex items-center gap-2 mb-1">
                         <MessageSquare className="w-4 h-4 text-stone-500" />
                         <span className="text-sm font-light text-stone-800">
-                          {remark.user}
+                          {remark. user}
                         </span>
                         <span className="text-xs text-stone-400 font-light">
-                          {remark.timestamp}
+                          {new Date(remark.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <p className="text-stone-600 font-light">{remark.text}</p>
@@ -310,8 +324,8 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                 <input
                   type="text"
                   value={remarkText}
-                  onChange={(e) => setRemarkText(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
+                  onChange={(e) => setRemarkText(e.target. value)}
+                  onKeyPress={(e) => e. key === "Enter" && handleAddRemark()}
                   placeholder="Add a verification comment..."
                   className="flex-1 px-0 py-3 bg-transparent border-0 border-b border-stone-300 text-stone-800 placeholder-stone-400 focus:border-stone-800 focus:outline-none transition-colors font-light"
                 />
@@ -325,6 +339,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
               </div>
             </div>
 
+            {/* ✅ UPDATED ACTION BUTTONS */}
             <div className="bg-white border border-stone-200 p-6">
               <label className="block text-sm font-light text-stone-600 mb-4 tracking-wide">
                 OE VERIFICATION ACTIONS
@@ -339,12 +354,12 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                   APPROVE & SEND TO RE
                 </button>
                 <button
-                  onClick={() => openActionModal("reject")}
+                  onClick={() => openActionModal("revision")}
                   disabled={actionType !== ""}
-                  className="px-6 py-4 bg-rose-600 hover:bg-rose-700 text-white font-light text-sm tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="px-6 py-4 bg-orange-600 hover:bg-orange-700 text-white font-light text-sm tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  <XCircle className="w-4 h-4" />
-                  REJECT & RETURN
+                  <ArrowLeft className="w-4 h-4" />
+                  SEND FOR REVISION
                 </button>
               </div>
               <button
@@ -360,6 +375,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
         </div>
       </div>
 
+      {/* ✅ UPDATED ACTION MODAL */}
       {showActionModal && (
         <div className="fixed inset-0 bg-stone-900/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
           <div className="bg-white max-w-md w-full border border-stone-300">
@@ -367,7 +383,7 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
               <h4 className="text-lg font-light tracking-wide">
                 {selectedAction === "approve" &&
                   "Approve & Forward to Resident Engineer"}
-                {selectedAction === "reject" && "Reject & Return to Department"}
+                {selectedAction === "revision" && "Send Back for Revision"}
                 {selectedAction === "refer" && "Refer to Another Department"}
               </h4>
             </div>
@@ -382,13 +398,28 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                 </div>
               )}
 
-              {selectedAction === "reject" && (
-                <div className="bg-rose-50 border border-rose-200 p-4">
-                  <p className="text-sm text-rose-800 font-light">
-                    This report will be returned to{" "}
-                    <strong>{report.referTo}</strong> department for revision.
-                    All remarks will be preserved.
-                  </p>
+              {/* ✅ NEW REVISION MODAL */}
+              {selectedAction === "revision" && (
+                <div>
+                  <div className="bg-orange-50 border border-orange-200 p-4 mb-4">
+                    <p className="text-sm text-orange-800 font-light">
+                      This report will be returned to{" "}
+                      <strong>{report.referTo}</strong> department for revision.
+                      Please specify what needs to be corrected.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-light text-stone-600 mb-2 tracking-wide">
+                      REASON FOR REVISION (REQUIRED)
+                    </label>
+                    <textarea
+                      value={revisionReason}
+                      onChange={(e) => setRevisionReason(e.target. value)}
+                      placeholder="Describe what needs to be revised..."
+                      rows="4"
+                      className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-orange-500 focus:outline-none transition-colors resize-none"
+                    />
+                  </div>
                 </div>
               )}
 
@@ -410,25 +441,27 @@ const ReportDetail = ({ report, onClose, onAction, onAddRemark }) => {
                     ))}
                   </select>
                   <p className="text-xs text-stone-500 font-light mt-2">
-                    All previous remarks and actions will be preserved. The
+                    All previous remarks and actions will be preserved.  The
                     selected department will receive this report with full
                     history.
                   </p>
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-light text-stone-600 mb-2 tracking-wide">
-                  ADD REMARK (OPTIONAL)
-                </label>
-                <textarea
-                  value={actionRemark}
-                  onChange={(e) => setActionRemark(e.target.value)}
-                  placeholder="Add a comment about this action..."
-                  rows="3"
-                  className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-stone-800 focus:outline-none transition-colors resize-none"
-                />
-              </div>
+              {selectedAction !== "revision" && (
+                <div>
+                  <label className="block text-sm font-light text-stone-600 mb-2 tracking-wide">
+                    ADD REMARK (OPTIONAL)
+                  </label>
+                  <textarea
+                    value={actionRemark}
+                    onChange={(e) => setActionRemark(e. target.value)}
+                    placeholder="Add a comment about this action..."
+                    rows="3"
+                    className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-stone-800 focus:outline-none transition-colors resize-none"
+                  />
+                </div>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <button
@@ -485,7 +518,7 @@ export default function OEDepartmentDashboard() {
       }
 
       const data = await response.json();
-      setReports(data.reports || []);
+      setReports(data. reports || []);
       setError(null);
     } catch (err) {
       console.error("Error fetching reports:", err);
@@ -500,7 +533,7 @@ export default function OEDepartmentDashboard() {
       const matchesSearch =
         r.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.apparatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        r.description.toLowerCase().includes(searchTerm.toLowerCase());
+        r. description.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || r.status === statusFilter;
 
       return matchesSearch && matchesStatus;
@@ -518,14 +551,14 @@ export default function OEDepartmentDashboard() {
         body: JSON.stringify({ text }),
       });
 
-      if (!response.ok) {
+      if (!response. ok) {
         const data = await response.json();
         throw new Error(data.message || "Failed to add remark");
       }
 
       const data = await response.json();
 
-      setReports(reports.map((r) => (r._id === reportId ? data.report : r)));
+      setReports(reports.map((r) => (r._id === reportId ? data. report : r)));
 
       if (selectedReport && selectedReport._id === reportId) {
         setSelectedReport(data.report);
@@ -536,17 +569,27 @@ export default function OEDepartmentDashboard() {
     }
   };
 
+  // ✅ UPDATED HANDLE ACTION
   const handleAction = async (reportId, actionType, options = {}) => {
     try {
+      // Validation
       if (actionType === "refer" && !options.department) {
         alert("Please select a department to refer to");
         throw new Error("Department not selected");
       }
 
+      if (actionType === "revision" && !options.revisionReason?. trim()) {
+        alert("Please provide a reason for revision");
+        throw new Error("Revision reason required");
+      }
+
+      // Map frontend action to backend action
+      const backendAction = actionType === "revision" ? "reject" : actionType;
+
       const payload = {
-        action: actionType,
+        action: backendAction,
         department: options.department || null,
-        remark: options.remark || null,
+        remark: options.revisionReason || options.remark || null,
       };
 
       console.log("Sending payload:", payload);
@@ -567,12 +610,14 @@ export default function OEDepartmentDashboard() {
         throw new Error(data.message || "Failed to process action");
       }
 
-      setReports(reports.filter((r) => r._id !== reportId));
+      // Remove from OE queue
+      setReports(reports. filter((r) => r._id !== reportId));
 
-      alert(`Report ${actionType}ed successfully!`);
+      const actionLabel = actionType === "revision" ? "sent for revision" : actionType + "ed";
+      alert(`Report ${actionLabel} successfully! `);
     } catch (err) {
       console.error("Error processing action:", err);
-      alert(err.message || "Failed to process action. Please try again.");
+      alert(err.message || "Failed to process action.  Please try again.");
       throw err;
     }
   };
@@ -677,13 +722,13 @@ export default function OEDepartmentDashboard() {
               NEEDS REVISION
             </p>
             <p className="text-3xl font-light text-stone-800">
-              {myReports.filter((r) => r.status === "Needs Revision").length}
+              {myReports. filter((r) => r.status === "Needs Revision").length}
             </p>
           </div>
         </div>
 
         <div className="space-y-4">
-          {myReports.length === 0 ? (
+          {myReports. length === 0 ? (
             <div className="bg-white border border-stone-200 p-12 text-center">
               <AlertCircle className="w-12 h-12 text-stone-300 mx-auto mb-4" />
               <p className="text-stone-400 font-light">

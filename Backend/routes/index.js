@@ -22,7 +22,7 @@ router.get("/", (req, res) => {
 // Engineer Registration
 router.post("/engineer/register", async (req, res) => {
   try {
-    const { name, email, password, department, designation, phoneNumber, role } = req.body;
+    const { name, email, password, department, phoneNumber, role } = req.body;
 
     const existingEngineer = await Engineer. findOne({ email });
     if (existingEngineer)
@@ -32,7 +32,6 @@ router.post("/engineer/register", async (req, res) => {
       name, 
       email, 
       department,
-      designation,
       phoneNumber,
       role: role || 'shift_engineer'
     });
@@ -46,7 +45,6 @@ router.post("/engineer/register", async (req, res) => {
         name: newEngineer.name,
         email: newEngineer.email,
         department: newEngineer.department,
-        designation: newEngineer.designation,
         role: newEngineer.role,
         userType: 'engineer'
       };
@@ -94,7 +92,7 @@ router.post("/engineer/login", (req, res, next) => {
 // Departmental User Registration
 router.post("/department/register", async (req, res) => {
   try {
-    const { name, employeeId, password, department, designation, phoneNumber, email } = req.body;
+    const { name, employeeId, password, department, phoneNumber, email } = req.body;
 
     const existingUser = await DepartmentalUser. findOne({ employeeId });
     if (existingUser)
@@ -105,7 +103,6 @@ router.post("/department/register", async (req, res) => {
       employeeId,
       email, // Optional
       department,
-      designation,
       phoneNumber,
       role: 'department'
     });
@@ -120,7 +117,6 @@ router.post("/department/register", async (req, res) => {
         employeeId: newUser.employeeId,
         email: newUser.email,
         department: newUser.department,
-        designation: newUser.designation,
         role: newUser.role,
         userType: 'departmental'
       };
@@ -304,6 +300,72 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
     res.status(500).json({ 
       message: "Error creating report", 
       error: error. message 
+    });
+  }
+});
+
+
+// Update report (Add department action and send to OE)
+router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
+  try {
+    const { departmentAction } = req.body;
+
+    console.log("📋 Department action request:", {
+      reportId: req.params.id,
+      user: req.user.name,
+      department: req.user.department,
+    });
+
+    if (!departmentAction || ! departmentAction.trim()) {
+      return res.status(400).json({
+        message: "Department action is required",
+      });
+    }
+
+    const report = await ReportModel.findById(req. params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    // Verify user is from the correct department
+    if (req.user.department !== report.referTo) {
+      return res. status(403).json({
+        message: "You can only update reports assigned to your department",
+      });
+    }
+
+    // Verify report is at Department stage
+    if (report.currentStage !== "Department") {
+      return res.status(400).json({
+        message: `Report is currently at ${report.currentStage} stage and cannot be modified`,
+      });
+    }
+
+    // Update report
+    report.departmentAction = departmentAction. trim();
+    report.status = "Under Review";
+    report.currentStage = "OE Department";
+    
+    report.remarks.push({
+      user: `${req.user.name} (${req.user.department})`,
+      text: `Department action submitted: ${departmentAction. trim()}.  Report forwarded to OE Department for verification.`,
+      timestamp: new Date(). toISOString(),
+    });
+
+    await report.save();
+
+    console.log("✅ Report sent to OE:", report. serialNo);
+
+    res.json({
+      message: "Department action added and report sent to OE successfully",
+      report,
+    });
+  } catch (error) {
+    console.error("❌ Error updating report:", error);
+    res.status(500).json({
+      message: "Error updating report",
+      error: error.message,
     });
   }
 });
@@ -742,7 +804,6 @@ router.post("/admin/users", isLoggedIn, isAdmin, async (req, res) => {
       email, 
       employeeId, 
       department, 
-      designation,
       userType // 'engineer' or 'departmental'
     } = req. body;
 
@@ -766,8 +827,7 @@ router.post("/admin/users", isLoggedIn, isAdmin, async (req, res) => {
         employeeId,
         email,
         department: department || 'General',
-        designation: designation || 'Staff',
-        role: role || 'resident_engineer',
+        role: role || 'department',
         status: 'active'
       });
 
@@ -803,7 +863,6 @@ router.post("/admin/users", isLoggedIn, isAdmin, async (req, res) => {
         name: name || username,
         email: userEmail,
         department: department || 'General',
-        designation: designation || role || 'Staff',
         role: role || 'shift_engineer',
         status: 'active'
       });

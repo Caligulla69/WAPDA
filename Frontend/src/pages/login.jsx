@@ -22,7 +22,6 @@ export default function ModernWhiteAuthForm() {
     password: "",
     confirmPassword: "",
     phoneNumber: "",
-    designation: "",
     department: "EME (P)",
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +62,6 @@ export default function ModernWhiteAuthForm() {
           }
         : {
             name: formData.name,
-            designation: formData.designation,
             phoneNumber: formData.phoneNumber,
             department: formData.department,
             email: formData.email,
@@ -97,6 +95,9 @@ export default function ModernWhiteAuthForm() {
               break;
             case "shift_engineer":
               navigate("/shiftDashboard");
+              break;
+            case "resident_engineer":
+              navigate("/reDashboard");
               break;
             case "oe":
               navigate("/oeDashboard");
@@ -294,40 +295,7 @@ export default function ModernWhiteAuthForm() {
               </div>
             )}
 
-            {/* Designation field */}
-            {!isLogin && (
-              <div className="relative">
-                <input
-                  type="text"
-                  name="designation"
-                  value={formData.designation}
-                  onChange={handleInputChange}
-                  onFocus={() => setFocusedField("designation")}
-                  onBlur={() => setFocusedField("")}
-                  className="w-full px-0 py-4 bg-transparent border-0 border-b border-stone-300 text-stone-800 placeholder-transparent focus:border-stone-800 focus:outline-none transition-colors duration-300 font-light text-lg"
-                  placeholder="Designation"
-                  id="designation"
-                />
-                <label
-                  htmlFor="designation"
-                  className={`absolute left-0 transition-all duration-300 pointer-events-none font-light ${
-                    focusedField === "designation" || formData.designation
-                      ? "-top-5 text-xs text-stone-600"
-                      : "top-4 text-stone-400"
-                  }`}
-                >
-                  Designation
-                </label>
-                <Briefcase
-                  className={`absolute right-0 top-4 w-5 h-5 transition-colors duration-300 ${
-                    focusedField === "designation"
-                      ? "text-stone-800"
-                      : "text-stone-400"
-                  }`}
-                />
-              </div>
-            )}
-
+         
             {/* Department field */}
             {!isLogin && (
               <div className="relative">
@@ -347,6 +315,7 @@ export default function ModernWhiteAuthForm() {
                   <option value="MME (A)">MME (A)</option>
                   <option value="XEN (BARAL)">XEN (BARAL)</option>
                   <option value="SOS">SOS</option>
+                  <option value="OE">OE</option>
                   <option value="ITRE">ITRE</option>
                 </select>
                 <label

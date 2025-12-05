@@ -97,7 +97,7 @@ export default function RoleSelectionPortal() {
                       : "text-stone-800"
                   }`}
                 >
-                  Engineer / Admin
+                  Engineer / OE
                 </h3>
 
                 <p
