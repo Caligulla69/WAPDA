@@ -1,31 +1,31 @@
 // ============================================
-// FILE: models/Reports.js
+// FILE: models/Reports. js
 // ============================================
 
 const mongoose = require("mongoose");
 
 // ==========================
-// Subschema: Remarks
+// Subschema:  Remarks
 // ==========================
-const remarkSchema = new mongoose.Schema({
+const remarkSchema = new mongoose. Schema({
   user: {
     type: String,
-    required: true, // Name or ID of the user adding the remark
+    required:  true,
   },
   text: {
     type: String,
-    required: true, // The actual remark text
+    required: true,
   },
   timestamp: {
     type: String,
-    required: true, // When the remark was added
+    required:  true,
   },
 });
 
 // ==========================
-// Main Schema: Reports
+// Main Schema:  Reports
 // ==========================
-const reportSchema = new mongoose.Schema(
+const reportSchema = new mongoose. Schema(
   {
     serialNo: {
       type: String,
@@ -36,7 +36,7 @@ const reportSchema = new mongoose.Schema(
     },
     date: {
       type: String,
-      required: true,
+      required:  true,
     },
     time: {
       type: String,
@@ -72,23 +72,29 @@ const reportSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    // Changed to array for multiple departments
     referTo: {
-      type: String,
+      type: [String],
       required: true,
+      validate: {
+        validator: function(v) {
+          return v && v.length > 0;
+        },
+        message: 'At least one department must be selected'
+      },
       enum: [
         "EME (P)",
         "EME (SY)",
-        " P&IE",
+        "P&IE",
         "MME (P)",
         "OE",
         "MME (A)",
         "XEN (EW)",
-        "XEN (BARAL)",
+        "XEN (BARAL)",
         "SOS",
         "ITRE",
         "Admin",
       ],
-      default: "EME (P)",
     },
     means: {
       type: String,
@@ -99,25 +105,21 @@ const reportSchema = new mongoose.Schema(
     status: {
       type: String,
       required: true,
-      enum: ["Pending", "Under Review", "Needs Revision", "Closed", "Rejected"],
+      enum:  ["Pending", "Under Review", "Needs Revision", "Closed", "Rejected"],
       default: "Pending",
     },
     currentStage: {
       type: String,
       required: true,
       enum: ["Department", "OE Department", "Resident Engineer", "Completed"],
-      default: "Department",
+      default:  "Department",
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types. ObjectId,
       ref: "User",
       required: true,
     },
-    // ==============================
-    // Embedded Remarks Array
-    // ==============================
     remarks: [remarkSchema],
-
     priority: {
       type: String,
       enum: ["Low", "Medium", "High", "Critical"],
@@ -126,8 +128,8 @@ const reportSchema = new mongoose.Schema(
     estimatedCompletionDate: {
       type: String,
     },
-    actualCompletionDate: {
-      type: String,
+    actualCompletionDate:  {
+      type:  String,
     },
   },
   {
@@ -135,7 +137,4 @@ const reportSchema = new mongoose.Schema(
   }
 );
 
-// ==========================
-// Export Model
-// ==========================
-module.exports = mongoose.model("Report", reportSchema);
+module.exports = mongoose. model("Report", reportSchema);

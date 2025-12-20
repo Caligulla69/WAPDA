@@ -12,6 +12,7 @@ import ResidentEngineerDashboard from './pages/REDashboard';
 import AdminDashboard from './pages/adminDashboard';
 import DepartmentEmployeePortal from './pages/depLogin';
 import RoleSelectionPortal from './pages/selectionPortal';
+import BioSyncLandingPage from './extras/landingpage';
 
 export default function App() {
   
@@ -19,6 +20,7 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<RoleSelectionPortal />} />
+        <Route path="/landing" element={<BioSyncLandingPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/depLogin" element={<DepartmentEmployeePortal />} />
         <Route path="/adminDashboard" element={<AdminDashboard />} />

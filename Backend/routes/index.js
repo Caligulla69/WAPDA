@@ -281,7 +281,7 @@ router.post("/createReport", isLoggedIn, async (req, res) => {
       recommendation,
       operationAction,
       notifiedBy: req.user.name,
-      referTo: referTo || 'EME (P)',
+      referTo: referTo,
       means: means || 'Telephone',
       status: 'Pending',
       currentStage: 'Department',
@@ -373,12 +373,13 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
 // Get all reports
 router.get("/reports", isLoggedIn, async (req, res) => {
   try {
-    const { role, department } = req.user;
+    const { role, department } = req. user;
     let query = {};
 
     // Filter based on role
     if (role === 'department') {
-      query. referTo = department;
+      // Use $in to check if the user's department is in the referTo array
+      query. referTo = { $in: [department] };
       query.currentStage = 'Department';
       query.status = { $nin: ['Closed'] };
     } else if (role === 'oe') {
@@ -390,12 +391,12 @@ router.get("/reports", isLoggedIn, async (req, res) => {
     // shift_engineer and admin can see all reports
 
     const reports = await ReportModel.find(query)
-      . sort({ createdAt: -1 })
+      .sort({ createdAt:  -1 })
       .populate('createdBy', 'name email');
 
     res.json(reports);
   } catch (error) {
-    console.error("Error fetching reports:", error);
+    console. error("Error fetching reports:", error);
     res.status(500).json({ message: "Error fetching reports" });
   }
 });

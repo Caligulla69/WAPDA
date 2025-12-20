@@ -5,8 +5,186 @@ import {
   ArrowRight,
   Users,
   Briefcase,
+  Zap,
+  FileText,
+  Clock,
+  CheckCircle,
+  ChevronRight,
+  Wrench,
+  Settings,
+  HardHat,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+// Role card component
+const RoleCard = ({ 
+  isHovered, 
+  onHover, 
+  onLeave, 
+  onClick, 
+  icon:  Icon, 
+  title, 
+  description, 
+  features,
+  badge,
+}) => {
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={onHover}
+      onMouseLeave={onLeave}
+      className="group relative bg-white border border-stone-200 p-8 sm:p-10 transition-all duration-500 hover:border-stone-400 hover:shadow-xl transform hover:-translate-y-1 text-left rounded-sm overflow-hidden"
+    >
+      {/* Animated background */}
+      <div 
+        className={`absolute inset-0 bg-gradient-to-br from-stone-900 to-stone-800 transition-transform duration-500 ease-out origin-left ${
+          isHovered ? "scale-x-100" : "scale-x-0"
+        }`}
+      />
+      
+      {/* Subtle pattern overlay */}
+      <div 
+        className={`absolute inset-0 opacity-5 transition-opacity duration-500 ${
+          isHovered ?  "opacity-10" : "opacity-0"
+        }`}
+        style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Ccircle cx='1' cy='1' r='1'/%3E%3C/g%3E%3C/svg%3E")`,
+        }}
+      />
+
+      <div className="relative z-10">
+        {/* Badge */}
+        {badge && (
+          <div 
+            className={`absolute -top-2 -right-2 px-3 py-1 text-xs font-medium rounded-sm transition-colors duration-500 ${
+              isHovered 
+                ? "bg-white text-stone-900" 
+                : "bg-stone-100 text-stone-600"
+            }`}
+          >
+            {badge}
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="flex items-start justify-between mb-6 sm:mb-8">
+          <div
+            className={`w-14 h-14 sm:w-16 sm:h-16 rounded-sm flex items-center justify-center transition-all duration-500 ${
+              isHovered
+                ? "bg-white shadow-lg"
+                : "bg-stone-100"
+            }`}
+          >
+            <Icon
+              className={`w-7 h-7 sm:w-8 sm:h-8 transition-all duration-500 ${
+                isHovered
+                  ? "text-stone-900 scale-110"
+                  : "text-stone-700"
+              }`}
+            />
+          </div>
+          <div 
+            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500 ${
+              isHovered 
+                ? "bg-white/20" 
+                : "bg-stone-100"
+            }`}
+          >
+            <ArrowRight
+              className={`w-5 h-5 transition-all duration-500 ${
+                isHovered
+                  ? "text-white translate-x-1"
+                  : "text-stone-400"
+              }`}
+            />
+          </div>
+        </div>
+
+        {/* Title */}
+        <h3
+          className={`text-xl sm:text-2xl font-light mb-3 tracking-wide transition-colors duration-500 ${
+            isHovered ?  "text-white" : "text-stone-800"
+          }`}
+        >
+          {title}
+        </h3>
+
+        {/* Description */}
+        <p
+          className={`text-sm sm:text-base font-light leading-relaxed mb-6 transition-colors duration-500 ${
+            isHovered ? "text-stone-300" : "text-stone-500"
+          }`}
+        >
+          {description}
+        </p>
+
+        {/* Divider */}
+        <div 
+          className={`w-12 h-px mb-6 transition-all duration-500 ${
+            isHovered ? "bg-stone-600 w-20" : "bg-stone-200"
+          }`}
+        />
+
+        {/* Features */}
+        <div className="space-y-3">
+          {features. map((feature, index) => (
+            <div 
+              key={index} 
+              className="flex items-center gap-3"
+              style={{
+                transitionDelay: `${index * 50}ms`
+              }}
+            >
+              <div 
+                className={`w-6 h-6 rounded-sm flex items-center justify-center transition-all duration-500 ${
+                  isHovered ?  "bg-white/10" : "bg-stone-50"
+                }`}
+              >
+                <feature.icon
+                  className={`w-3. 5 h-3.5 transition-colors duration-500 ${
+                    isHovered ?  "text-stone-400" : "text-stone-500"
+                  }`}
+                />
+              </div>
+              <span
+                className={`text-sm font-light transition-colors duration-500 ${
+                  isHovered ? "text-stone-300" : "text-stone-600"
+                }`}
+              >
+                {feature.label}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* CTA */}
+        <div 
+          className={`mt-8 flex items-center gap-2 text-sm font-light transition-all duration-500 ${
+            isHovered ? "text-white" : "text-stone-400"
+          }`}
+        >
+          <span>Access Portal</span>
+          <ChevronRight 
+            className={`w-4 h-4 transition-transform duration-300 ${
+              isHovered ? "translate-x-1" : ""
+            }`}
+          />
+        </div>
+      </div>
+    </button>
+  );
+};
+
+// Stats card component
+const StatCard = ({ icon:  Icon, value, label }) => (
+  <div className="flex items-center gap-3 px-4 py-3 bg-stone-800/50 rounded-sm">
+    <Icon className="w-5 h-5 text-stone-400" />
+    <div>
+      <p className="text-white font-light text-lg">{value}</p>
+      <p className="text-stone-500 text-xs font-light">{label}</p>
+    </div>
+  </div>
+);
 
 export default function RoleSelectionPortal() {
   const [hoveredCard, setHoveredCard] = useState(null);
@@ -14,304 +192,166 @@ export default function RoleSelectionPortal() {
 
   const handleRoleSelection = (role) => {
     if (role === "engineer") {
-      navigate("/login"); // Your engineer/admin login page
+      navigate("/login");
     } else if (role === "department") {
-      navigate("/depLogin"); // Your department employee login page
+      navigate("/depLogin");
     }
   };
 
+  const engineerFeatures = [
+    { icon: Briefcase, label: "Shift Engineer" },
+    { icon: Users, label: "Resident Engineer" },
+    { icon: Settings, label: "OE & Admin Access" },
+  ];
+
+  const departmentFeatures = [
+    { icon:  Wrench, label:  "EME & MME Departments" },
+    { icon: HardHat, label: "Civil & XEN Departments" },
+    { icon: Building2, label: "All Other Departments" },
+  ];
+
   return (
-    <div className="min-h-screen bg-stone-50 flex flex-col">
+    <div className="min-h-screen bg-stone-100 flex flex-col">
       {/* Header */}
-      <div className="w-full bg-stone-900 py-4 sm:py-6 px-4 sm:px-8">
+      <header className="w-full bg-stone-900 py-4 sm:py-5 px-4 sm:px-8 border-b border-stone-800">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-white rounded-sm"></div>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-white rounded-sm flex items-center justify-center">
+              <Zap className="w-5 h-5 text-stone-900" />
+            </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-light text-white tracking-wider">
+              <h1 className="text-lg sm:text-xl font-light text-white tracking-wider">
                 WAPDA
               </h1>
-              <p className="text-stone-400 text-xs sm:text-sm font-light">
+              <p className="text-stone-500 text-xs font-light hidden sm:block">
                 Trouble Reporting System
               </p>
             </div>
           </div>
+          
+          {/* Quick stats - Desktop only */}
+          <div className="hidden lg:flex items-center gap-4">
+            <StatCard icon={FileText} value="24/7" label="Reporting" />
+            <StatCard icon={Clock} value="Real-time" label="Tracking" />
+            <StatCard icon={CheckCircle} value="100%" label="Secure" />
+          </div>
         </div>
-      </div>
+      </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+      <main className="flex-1 flex items-center justify-center p-4 sm: p-8 lg:p-12">
         <div className="w-full max-w-5xl">
           {/* Title Section */}
-          <div className="text-center mb-8 sm:mb-12">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-light text-stone-800 mb-3 sm:mb-4 tracking-wide">
-              Welcome
+          <div className="text-center mb-10 sm:mb-14">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-stone-200 rounded-sm mb-6">
+              <Shield className="w-4 h-4 text-stone-600" />
+              <span className="text-stone-600 text-xs font-medium tracking-wide">
+                SECURE PORTAL ACCESS
+              </span>
+            </div>
+            
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-light text-stone-800 mb-4 tracking-wide">
+              Welcome to WAPDA
             </h2>
-            <p className="text-stone-500 text-base sm:text-lg font-light max-w-2xl mx-auto px-4">
-              Select your role to access the appropriate portal
+            <p className="text-stone-500 text-base sm:text-lg font-light max-w-xl mx-auto leading-relaxed">
+              Select your role to access the trouble reporting and management system
             </p>
-            <div className="w-24 h-px bg-stone-300 mx-auto mt-6 sm:mt-8"></div>
           </div>
 
           {/* Role Cards */}
-          <div className="grid md:grid-cols-2 gap-6 sm:gap-8 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto">
             {/* Engineer/Admin Card */}
-            <button
+            <RoleCard
+              isHovered={hoveredCard === "engineer"}
+              onHover={() => setHoveredCard("engineer")}
+              onLeave={() => setHoveredCard(null)}
               onClick={() => handleRoleSelection("engineer")}
-              onMouseEnter={() => setHoveredCard("engineer")}
-              onMouseLeave={() => setHoveredCard(null)}
-              className="group relative bg-white rounded-none border border-stone-200 p-8 sm:p-10 transition-all duration-500 hover:border-stone-800 hover:shadow-2xl transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-stone-900 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <div
-                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-sm flex items-center justify-center transition-all duration-500 ${
-                      hoveredCard === "engineer"
-                        ? "bg-white"
-                        : "bg-stone-100"
-                    }`}
-                  >
-                    <Shield
-                      className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-900"
-                          : "text-stone-700"
-                      }`}
-                    />
-                  </div>
-                  <ArrowRight
-                    className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-500 ${
-                      hoveredCard === "engineer"
-                        ? "text-white translate-x-2"
-                        : "text-stone-400 translate-x-0"
-                    }`}
-                  />
-                </div>
-
-                <h3
-                  className={`text-xl sm:text-2xl font-light mb-3 sm:mb-4 tracking-wide transition-colors duration-500 ${
-                    hoveredCard === "engineer"
-                      ? "text-white"
-                      : "text-stone-800"
-                  }`}
-                >
-                  Engineer / OE
-                </h3>
-
-                <p
-                  className={`text-sm sm:text-base font-light leading-relaxed mb-6 transition-colors duration-500 ${
-                    hoveredCard === "engineer"
-                      ? "text-stone-300"
-                      : "text-stone-600"
-                  }`}
-                >
-                  Access for Shift Engineers, Resident Engineers, Operational Excellence, and Administrators
-                </p>
-
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <Briefcase
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Shift Engineer
-                    </span>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <Users
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Resident Engineer
-                    </span>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <Shield
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "engineer"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Admin & OE
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </button>
+              icon={Shield}
+              title="Engineer Portal"
+              description="For Shift Engineers, Resident Engineers, OE staff, and system administrators"
+              features={engineerFeatures}
+              badge="Primary Access"
+            />
 
             {/* Department Employee Card */}
-            <button
+            <RoleCard
+              isHovered={hoveredCard === "department"}
+              onHover={() => setHoveredCard("department")}
+              onLeave={() => setHoveredCard(null)}
               onClick={() => handleRoleSelection("department")}
-              onMouseEnter={() => setHoveredCard("department")}
-              onMouseLeave={() => setHoveredCard(null)}
-              className="group relative bg-white rounded-none border border-stone-200 p-8 sm:p-10 transition-all duration-500 hover:border-stone-800 hover:shadow-2xl transform hover:-translate-y-1"
-            >
-              <div className="absolute inset-0 bg-stone-900 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6 sm:mb-8">
-                  <div
-                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-sm flex items-center justify-center transition-all duration-500 ${
-                      hoveredCard === "department"
-                        ? "bg-white"
-                        : "bg-stone-100"
-                    }`}
-                  >
-                    <Building2
-                      className={`w-7 h-7 sm:w-8 sm:h-8 transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-900"
-                          : "text-stone-700"
-                      }`}
-                    />
-                  </div>
-                  <ArrowRight
-                    className={`w-5 h-5 sm:w-6 sm:h-6 transition-all duration-500 ${
-                      hoveredCard === "department"
-                        ? "text-white translate-x-2"
-                        : "text-stone-400 translate-x-0"
-                    }`}
-                  />
-                </div>
-
-                <h3
-                  className={`text-xl sm:text-2xl font-light mb-3 sm:mb-4 tracking-wide transition-colors duration-500 ${
-                    hoveredCard === "department"
-                      ? "text-white"
-                      : "text-stone-800"
-                  }`}
-                >
-                  Department Employee
-                </h3>
-
-                <p
-                  className={`text-sm sm:text-base font-light leading-relaxed mb-6 transition-colors duration-500 ${
-                    hoveredCard === "department"
-                      ? "text-stone-300"
-                      : "text-stone-600"
-                  }`}
-                >
-                  Access for department staff members from Electrical, Mechanical, Civil, and other departments
-                </p>
-
-                <div className="space-y-2 sm:space-y-3">
-                  <div className="flex items-start space-x-3">
-                    <Building2
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Electrical Department
-                    </span>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <Building2
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Mechanical Department
-                    </span>
-                  </div>
-                  <div className="flex items-start space-x-3">
-                    <Building2
-                      className={`w-4 h-4 flex-shrink-0 mt-0.5 transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-400"
-                          : "text-stone-500"
-                      }`}
-                    />
-                    <span
-                      className={`text-xs sm:text-sm font-light transition-colors duration-500 ${
-                        hoveredCard === "department"
-                          ? "text-stone-300"
-                          : "text-stone-600"
-                      }`}
-                    >
-                      Civil & Other Departments
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </button>
+              icon={Building2}
+              title="Department Portal"
+              description="For department employees to view and respond to assigned trouble reports"
+              features={departmentFeatures}
+            />
           </div>
 
-          {/* Footer Note */}
-          <div className="text-center mt-12 sm:mt-16">
-            <p className="text-stone-400 text-xs sm:text-sm font-light leading-relaxed max-w-2xl mx-auto px-4">
-              If you're unsure which portal to use, please contact your supervisor or the system administrator
-            </p>
+          {/* Help Section */}
+          <div className="mt-12 sm:mt-16 text-center">
+            <div className="inline-flex flex-col sm:flex-row items-center gap-4 sm:gap-6 px-6 py-4 bg-white border border-stone-200 rounded-sm">
+              <div className="flex items-center gap-2 text-stone-500">
+                <AlertCircle className="w-4 h-4" />
+                <span className="text-sm font-light">Need help choosing? </span>
+              </div>
+              <div className="hidden sm:block w-px h-6 bg-stone-200" />
+              <p className="text-stone-600 text-sm font-light">
+                Contact your supervisor or{" "}
+                <button className="text-stone-800 underline underline-offset-2 hover:text-stone-900 transition-colors">
+                  system administrator
+                </button>
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
       {/* Footer */}
-      <div className="w-full bg-white border-t border-stone-200 py-4 sm:py-6 px-4 sm:px-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
-          <p className="text-stone-500 text-xs font-light text-center sm:text-left">
-            © 2024 WAPDA. All rights reserved.
-          </p>
-          <div className="flex items-center space-x-4 sm:space-x-6">
-            <button className="text-stone-500 hover:text-stone-700 text-xs font-light transition-colors">
-              Help
-            </button>
-            <button className="text-stone-500 hover:text-stone-700 text-xs font-light transition-colors">
-              Contact
-            </button>
-            <button className="text-stone-500 hover:text-stone-700 text-xs font-light transition-colors">
-              Privacy
-            </button>
+      <footer className="w-full bg-white border-t border-stone-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-5">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 bg-stone-900 rounded-sm flex items-center justify-center">
+                <Zap className="w-3 h-3 text-white" />
+              </div>
+              <p className="text-stone-500 text-xs font-light">
+                © {new Date().getFullYear()} WAPDA. All rights reserved.
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <button className="text-stone-500 hover: text-stone-700 text-sm font-light transition-colors flex items-center gap-1. 5">
+                <FileText className="w-3. 5 h-3.5" />
+                Documentation
+              </button>
+              <button className="text-stone-500 hover:text-stone-700 text-sm font-light transition-colors flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5" />
+                Support
+              </button>
+              <button className="text-stone-500 hover:text-stone-700 text-sm font-light transition-colors flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5" />
+                Privacy
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
+
+// Missing import - add at top if needed
+const AlertCircle = ({ className }) => (
+  <svg 
+    className={className} 
+    viewBox="0 0 24 24" 
+    fill="none" 
+    stroke="currentColor" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    strokeLinejoin="round"
+  >
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12. 01" y2="16" />
+  </svg>
+);
