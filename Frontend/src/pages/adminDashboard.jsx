@@ -154,9 +154,9 @@ const StatusBadge = ({ status }) => {
   const style = config[status] || { bg: "bg-stone-50", text: "text-stone-700", dot: "bg-stone-400" };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 px-2. 5 py-1 text-xs font-medium rounded-sm ${style.bg} ${style.text}`}>
-      <span className={`w-1.5 h-1.5 rounded-full ${style. dot}`} />
-      {status?. toUpperCase() || "OPEN"}
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-sm ${style.bg} ${style.text}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
+      {status?.toUpperCase() || "OPEN"}
     </span>
   );
 };
@@ -253,7 +253,7 @@ const RemarksSection = ({ remarks = [], reportId, onAddRemark }) => {
         ) : (
           <div className="divide-y divide-stone-100">
             {remarks.map((remark, idx) => {
-              const style = getRemarkStyle(remark. text);
+              const style = getRemarkStyle(remark.text);
               return (
                 <div
                   key={idx}
@@ -293,14 +293,14 @@ const RemarksSection = ({ remarks = [], reportId, onAddRemark }) => {
           <input
             type="text"
             value={newRemark}
-            onChange={(e) => setNewRemark(e.target. value)}
+            onChange={(e) => setNewRemark(e.target.value)}
             onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
             placeholder="Add an admin remark..."
             className="flex-1 px-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus:border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
           />
           <button
             onClick={handleAddRemark}
-            disabled={isAdding || !newRemark. trim()}
+            disabled={isAdding || !newRemark.trim()}
             className="px-5 py-3 bg-stone-900 hover:bg-stone-800 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 rounded-sm"
           >
             {isAdding ? (
@@ -351,9 +351,9 @@ const MultiSelectDepartments = ({ selected = [], onChange, label }) => {
         className="w-full p-3 bg-white border border-stone-200 text-stone-800 text-sm font-light cursor-pointer hover:border-stone-300 transition-all duration-200 rounded-sm min-h-[48px]"
       >
         <div className="flex items-center justify-between gap-2">
-          <div className="flex flex-wrap gap-1. 5 flex-1">
+          <div className="flex flex-wrap gap-1.5 flex-1">
             {selected.length === 0 ?  (
-              <span className="text-stone-400">Select departments... </span>
+              <span className="text-stone-400">Select departments...</span>
             ) : (
               selected.map((dept) => (
                 <span
@@ -390,7 +390,7 @@ const MultiSelectDepartments = ({ selected = [], onChange, label }) => {
               <div
                 key={dept}
                 onClick={() => toggleDepartment(dept)}
-                className={`flex items-center gap-3 px-4 py-2. 5 cursor-pointer transition-all duration-150 ${
+                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all duration-150 ${
                   selected.includes(dept)
                     ?  "bg-stone-100 text-stone-900"
                     : "hover:bg-stone-50 text-stone-700"
@@ -421,19 +421,19 @@ const MultiSelectDepartments = ({ selected = [], onChange, label }) => {
 const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
   const [activeTab, setActiveTab] = useState("details");
   const [formData, setFormData] = useState({
-    serialNo: report?. serialNo || "",
-    date: report?.date ?  new Date(report. date).toISOString().split("T")[0] : "",
+    serialNo: report?.serialNo || "",
+    date: report?.date ?  new Date(report.date).toISOString().split("T")[0] : "",
     time: report?.time || "",
     notifiedBy: report?.notifiedBy || "",
     means: report?.means || "Telephone",
-    referTo: Array.isArray(report?.referTo) ? report. referTo : [report?.referTo || "EME (P)"],
+    referTo: Array.isArray(report?.referTo) ? report.referTo : [report?.referTo || "EME (P)"],
     apparatus: report?.apparatus || "",
     description: report?.description || "",
     recommendation: report?.recommendation || "",
     operationAction: report?.operationAction || "",
-    departmentAction: report?. departmentAction || "",
+    departmentAction: report?.departmentAction || "",
     status: report?.status || "Pending",
-    currentStage: report?. currentStage || "Department",
+    currentStage: report?.currentStage || "Department",
     priority: report?.priority || "Medium",
   });
   const [saving, setSaving] = useState(false);
@@ -495,7 +495,7 @@ const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
               Edit Report
             </h3>
             <div className="flex items-center gap-3 mt-1">
-              <p className="text-stone-400 font-light text-sm">{report. serialNo}</p>
+              <p className="text-stone-400 font-light text-sm">{report.serialNo}</p>
               <StatusBadge status={report.status} />
             </div>
           </div>
@@ -533,7 +533,7 @@ const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
             <span className="flex items-center justify-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Remarks
-              {report.remarks?. length > 0 && (
+              {report.remarks?.length > 0 && (
                 <span className="px-2 py-0.5 bg-stone-200 text-stone-700 text-xs rounded-full">
                   {report.remarks.length}
                 </span>
@@ -654,7 +654,7 @@ const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
                 <FloatingInput
                   id="operationAction"
                   name="operationAction"
-                  value={formData. operationAction}
+                  value={formData.operationAction}
                   onChange={handleChange}
                   label="Operation Action"
                   rows={3}
@@ -675,7 +675,7 @@ const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
                   <p className="text-xs text-stone-500 font-light">
                     Created by:{" "}
                     <span className="text-stone-700">
-                      {report.createdBy?. name || report.createdBy?. email || "Unknown"}
+                      {report.createdBy?.name || report.createdBy?.email || "Unknown"}
                     </span>
                     {report.createdAt && (
                       <>
@@ -733,10 +733,10 @@ const ReportEditModal = ({ report, onClose, onSave, onAddRemark }) => {
 // Report View Modal (Read-only with all details)
 // ============================================
 const ReportViewModal = ({ report, onClose }) => {
-  const departments = Array.isArray(report?. referTo) ? report.referTo : [report?.referTo];
+  const departments = Array.isArray(report?.referTo) ? report.referTo : [report?.referTo];
 
   const getRemarkStyle = (text) => {
-    if (text?. includes("rejected") || text?.includes("Rejected")) {
+    if (text?.includes("rejected") || text?.includes("Rejected")) {
       return { border: "border-red-300", bg: "bg-red-50/50", icon: "text-red-500" };
     }
     if (text?.includes("approved") || text?.includes("Approved") || text?.includes("Closed")) {
@@ -803,7 +803,7 @@ const ReportViewModal = ({ report, onClose }) => {
           <div className="bg-white border border-stone-200 p-4 rounded-sm">
             <p className="text-xs text-stone-500 font-light mb-2">Referred Departments</p>
             <div className="flex flex-wrap gap-2">
-              {departments. map((dept, idx) => (
+              {departments.map((dept, idx) => (
                 <span
                   key={idx}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 text-stone-700 text-sm font-light rounded-sm"
@@ -836,7 +836,7 @@ const ReportViewModal = ({ report, onClose }) => {
           {report.operationAction && (
             <div className="bg-white border border-stone-200 p-4 rounded-sm">
               <p className="text-xs text-stone-500 font-light mb-2">Operation Action</p>
-              <p className="text-sm text-stone-800 font-light whitespace-pre-wrap">{report. operationAction}</p>
+              <p className="text-sm text-stone-800 font-light whitespace-pre-wrap">{report.operationAction}</p>
             </div>
           )}
 
@@ -858,7 +858,7 @@ const ReportViewModal = ({ report, onClose }) => {
             {report.remarks && report.remarks.length > 0 ?  (
               <div className="divide-y divide-stone-100">
                 {report.remarks.map((remark, idx) => {
-                  const style = getRemarkStyle(remark. text);
+                  const style = getRemarkStyle(remark.text);
                   return (
                     <div
                       key={idx}
@@ -953,7 +953,7 @@ const UserManagementModal = ({ onClose }) => {
         method: "POST",
         headers: { "Content-Type":  "application/json" },
         credentials: "include",
-        body: JSON. stringify(newUser),
+        body: JSON.stringify(newUser),
       });
       if (!response.ok) {
         const error = await response.json();
@@ -985,7 +985,7 @@ const UserManagementModal = ({ onClose }) => {
         method: "DELETE",
         credentials: "include",
       });
-      if (!response. ok) {
+      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to delete user");
       }
@@ -1015,10 +1015,10 @@ const UserManagementModal = ({ onClose }) => {
 
   const filteredUsers = useMemo(() => {
     if (! searchTerm) return users;
-    const term = searchTerm. toLowerCase();
+    const term = searchTerm.toLowerCase();
     return users.filter(
       (u) =>
-        u.name?. toLowerCase().includes(term) ||
+        u.name?.toLowerCase().includes(term) ||
         u.email?.toLowerCase().includes(term) ||
         u.department?.toLowerCase().includes(term) ||
         u.role?.toLowerCase().includes(term)
@@ -1127,15 +1127,15 @@ const UserManagementModal = ({ onClose }) => {
                   id="password"
                   name="password"
                   type="password"
-                  value={newUser. password}
-                  onChange={(e) => setNewUser({ ... newUser, password:  e.target.value })}
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password:  e.target.value })}
                   label="Password *"
                 />
                 <FloatingInput
                   id="name"
                   name="name"
                   value={newUser.name}
-                  onChange={(e) => setNewUser({ ...newUser, name: e.target. value })}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                   label="Full Name"
                 />
                 <FloatingInput
@@ -1143,7 +1143,7 @@ const UserManagementModal = ({ onClose }) => {
                   name="email"
                   type="email"
                   value={newUser.email}
-                  onChange={(e) => setNewUser({ ...newUser, email: e.target. value })}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                   label="Email"
                 />
                 <FloatingSelect
@@ -1158,7 +1158,7 @@ const UserManagementModal = ({ onClose }) => {
                   id="role"
                   name="role"
                   value={newUser.role}
-                  onChange={(e) => setNewUser({ ...newUser, role: e.target. value })}
+                  onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
                   label="Role"
                   options={roleOptions}
                 />
@@ -1227,13 +1227,13 @@ const UserManagementModal = ({ onClose }) => {
                         </td>
                         <td className="px-5 py-4">
                           <span className="inline-flex items-center gap-1.5 text-sm text-stone-600 font-light">
-                            <Building2 className="w-3. 5 h-3.5" />
-                            {user. department || "—"}
+                            <Building2 className="w-3.5 h-3.5" />
+                            {user.department || "—"}
                           </span>
                         </td>
                         <td className="px-5 py-4">
                           <span className="px-2.5 py-1 bg-stone-100 text-stone-700 text-xs font-medium rounded-sm">
-                            {user.role?. replace("_", " ").toUpperCase() || "—"}
+                            {user.role?.replace("_", " ").toUpperCase() || "—"}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -1249,7 +1249,7 @@ const UserManagementModal = ({ onClose }) => {
                                 user.status === "active" ? "bg-emerald-400" : "bg-red-400"
                               }`}
                             />
-                            {user. status === "active" ? "ACTIVE" : "DISABLED"}
+                            {user.status === "active" ? "ACTIVE" : "DISABLED"}
                           </span>
                         </td>
                         <td className="px-5 py-4">
@@ -1325,7 +1325,7 @@ export default function AdminDashboard() {
       const response = await fetch(`${API_URL}/admin/reports`, {
         credentials: "include",
       });
-      if (!response. ok) throw new Error("Failed to fetch reports");
+      if (!response.ok) throw new Error("Failed to fetch reports");
       const data = await response.json();
       setReports(data);
     } catch (err) {
@@ -1357,7 +1357,7 @@ export default function AdminDashboard() {
         credentials: "include",
         body: JSON.stringify(formData),
       });
-      if (!response. ok) {
+      if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || "Failed to update report");
       }
@@ -1378,7 +1378,7 @@ const handleAddRemark = async (reportId, text) => {
       body:  JSON.stringify({ text }),
     });
     
-    if (!response. ok) {
+    if (!response.ok) {
       const error = await response.json();
       throw new Error(error.message || "Failed to add remark");
     }
@@ -1387,7 +1387,7 @@ const handleAddRemark = async (reportId, text) => {
     
     // Update the report in state
     setReports((prev) =>
-      prev. map((r) => (r._id === reportId ? data. report : r))
+      prev.map((r) => (r._id === reportId ? data.report : r))
     );
     
     // Update selected report if open
@@ -1432,19 +1432,19 @@ const handleAddRemark = async (reportId, text) => {
         (r) => r.status === "Pending" || r.status === "Under Review" || r.status === "Needs Revision"
       );
     } else if (filter === "closed") {
-      filtered = reports. filter((r) => r.status === "Closed");
+      filtered = reports.filter((r) => r.status === "Closed");
     } else if (filter === "rejected") {
       filtered = reports.filter((r) => r.status === "Rejected");
     }
 
     if (searchTerm) {
-      const term = searchTerm. toLowerCase();
+      const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (r) =>
-          r. serialNo?. toLowerCase().includes(term) ||
+          r.serialNo?.toLowerCase().includes(term) ||
           r.apparatus?.toLowerCase().includes(term) ||
           r.description?.toLowerCase().includes(term) ||
-          (Array.isArray(r.referTo) ? r.referTo. join(" ") : r.referTo)?.toLowerCase().includes(term)
+          (Array.isArray(r.referTo) ? r.referTo.join(" ") : r.referTo)?.toLowerCase().includes(term)
       );
     }
 
@@ -1560,7 +1560,7 @@ const handleAddRemark = async (reportId, text) => {
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e. target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Search by serial no, apparatus, description, or department..."
                   className="w-full pl-12 pr-4 py-3.5 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus:border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
                 />
@@ -1578,7 +1578,7 @@ const handleAddRemark = async (reportId, text) => {
             {/* Reports Count */}
             <div className="mb-4">
               <p className="text-sm text-stone-500 font-light">
-                Showing <span className="font-medium text-stone-700">{displayReports. length}</span> of{" "}
+                Showing <span className="font-medium text-stone-700">{displayReports.length}</span> of{" "}
                 <span className="font-medium text-stone-700">{reports.length}</span> reports
               </p>
             </div>
@@ -1625,7 +1625,7 @@ const handleAddRemark = async (reportId, text) => {
                       {displayReports.map((report) => {
                         const departments = Array.isArray(report.referTo)
                           ? report.referTo
-                          : [report. referTo];
+                          : [report.referTo];
 
                         return (
                           <tr key={report._id} className="hover:bg-stone-50 transition-colors">
@@ -1667,7 +1667,7 @@ const handleAddRemark = async (reportId, text) => {
                                 className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-stone-700 font-light transition-colors"
                               >
                                 <MessageSquare className="w-4 h-4" />
-                                <span>{report.remarks?. length || 0}</span>
+                                <span>{report.remarks?.length || 0}</span>
                               </button>
                             </td>
                             <td className="px-5 py-4 hidden sm:table-cell">

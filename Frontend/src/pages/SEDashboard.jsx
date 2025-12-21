@@ -42,7 +42,7 @@ const generateNextSerialNo = (reports) => {
   
   // Filter reports from current year and extract numbers
   const currentYearNumbers = reports
-    .filter((report) => report.serialNo && report.serialNo. startsWith(prefix))
+    .filter((report) => report.serialNo && report.serialNo.startsWith(prefix))
     .map((report) => {
       const numPart = report.serialNo.replace(prefix, "");
       return parseInt(numPart, 10);
@@ -83,7 +83,7 @@ const MultiSelectDropdown = ({ selected, onChange, options, label }) => {
         <div className="flex items-center justify-between gap-2">
           <div className="flex flex-wrap gap-1.5 flex-1">
             {selected.length === 0 ?  (
-              <span className="text-stone-400">Select departments... </span>
+              <span className="text-stone-400">Select departments...</span>
             ) : (
               selected.map((dept) => (
                 <span
@@ -123,7 +123,7 @@ const MultiSelectDropdown = ({ selected, onChange, options, label }) => {
               <div
                 key={option}
                 onClick={() => toggleOption(option)}
-                className={`flex items-center gap-3 px-4 py-2. 5 cursor-pointer transition-all duration-150 ${
+                className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-all duration-150 ${
                   selected.includes(option)
                     ?  "bg-stone-100 text-stone-900"
                     : "hover:bg-stone-50 text-stone-700"
@@ -174,9 +174,9 @@ const ReportCard = ({ report, onClick }) => {
     },
   };
 
-  const config = statusConfig[report.status] || statusConfig. Pending;
+  const config = statusConfig[report.status] || statusConfig.Pending;
   const departments = Array.isArray(report.referTo)
-    ? report. referTo
+    ? report.referTo
     :  [report.referTo];
 
   return (
@@ -194,8 +194,8 @@ const ReportCard = ({ report, onClick }) => {
               <span
                 className={`px-2.5 py-1 text-xs font-medium border ${config.color} flex items-center gap-1.5 whitespace-nowrap rounded-sm`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${config. dotColor}`} />
-                {report. status. toUpperCase()}
+                <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
+                {report.status.toUpperCase()}
               </span>
             </div>
             <p className="text-stone-500 text-sm font-light truncate">
@@ -206,12 +206,12 @@ const ReportCard = ({ report, onClick }) => {
         </div>
 
         <p className="text-stone-600 font-light leading-relaxed mb-4 line-clamp-2 text-sm sm:text-base">
-          {report. description}
+          {report.description}
         </p>
 
         {/* Departments Tags */}
         <div className="flex flex-wrap gap-1.5 mb-4">
-          {departments. map((dept, idx) => (
+          {departments.map((dept, idx) => (
             <span
               key={idx}
               className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-100 text-stone-600 text-xs font-light rounded-sm"
@@ -224,7 +224,7 @@ const ReportCard = ({ report, onClick }) => {
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-stone-500 font-light border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-3. 5 h-3.5 flex-shrink-0 text-stone-400" />
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
             <span className="whitespace-nowrap">{report.date}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -233,7 +233,7 @@ const ReportCard = ({ report, onClick }) => {
           </div>
           <div className="flex items-center gap-2">
             <User className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
-            <span className="truncate">{report. notifiedBy}</span>
+            <span className="truncate">{report.notifiedBy}</span>
           </div>
         </div>
       </div>
@@ -301,11 +301,11 @@ const ReportDetail = ({ report, onClose, onAddRemark, onUpdateStatus }) => {
           {/* Details Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {[
-              { label: "Date", value: report. date },
+              { label: "Date", value: report.date },
               { label: "Time", value: report.time },
               { label: "Notified By", value:  report.notifiedBy },
-              { label: "Current Stage", value: report. currentStage },
-              { label: "Priority", value: report. priority || "Medium" },
+              { label: "Current Stage", value: report.currentStage },
+              { label: "Priority", value: report.priority || "Medium" },
               { label: "Means", value: report.means },
             ].map((item, idx) => (
               <div
@@ -328,7 +328,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onUpdateStatus }) => {
               Referred Departments
             </label>
             <div className="flex flex-wrap gap-2">
-              {departments. map((dept, idx) => (
+              {departments.map((dept, idx) => (
                 <span
                   key={idx}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 text-stone-700 text-sm font-light rounded-sm border border-stone-200"
@@ -367,7 +367,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onUpdateStatus }) => {
                 Recommendation
               </label>
               <p className="text-stone-800 font-light leading-relaxed text-sm break-words">
-                {report. recommendation}
+                {report.recommendation}
               </p>
             </div>
           )}
@@ -397,7 +397,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onUpdateStatus }) => {
                     className="border-l-2 border-stone-300 pl-4 py-1"
                   >
                     <div className="flex flex-wrap items-center gap-2 mb-1.5">
-                      <User className="w-3. 5 h-3.5 text-stone-400" />
+                      <User className="w-3.5 h-3.5 text-stone-400" />
                       <span className="text-sm font-medium text-stone-700">
                         {remark.user}
                       </span>
@@ -406,7 +406,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onUpdateStatus }) => {
                       </span>
                     </div>
                     <p className="text-stone-600 font-light text-sm break-words">
-                      {remark. text}
+                      {remark.text}
                     </p>
                   </div>
                 ))
@@ -499,7 +499,7 @@ export default function ShiftEngineerDashboard() {
   const filteredReports = useMemo(() => {
     return reports.filter((report) => {
       const departments = Array.isArray(report.referTo)
-        ? report.referTo. join(" ")
+        ? report.referTo.join(" ")
         : report.referTo;
       const matchesSearch =
         report.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -515,12 +515,12 @@ export default function ShiftEngineerDashboard() {
   }, [reports, searchTerm, statusFilter]);
 
   const handleSubmit = async () => {
-    if (! formData.serialNo || !formData. description || !formData.apparatus) {
+    if (! formData.serialNo || !formData.description || !formData.apparatus) {
       alert("Please fill all required fields (Serial No, Apparatus, Description)");
       return;
     }
 
-    if (formData.referTo. length === 0) {
+    if (formData.referTo.length === 0) {
       alert("Please select at least one department");
       return;
     }
@@ -533,9 +533,9 @@ export default function ShiftEngineerDashboard() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON. stringify({
-          serialNo: formData. serialNo. toUpperCase(),
-          date: formData. date,
+        body: JSON.stringify({
+          serialNo: formData.serialNo.toUpperCase(),
+          date: formData.date,
           time: formData.time,
           apparatus:  formData.apparatus,
           description: formData.description,
@@ -546,7 +546,7 @@ export default function ShiftEngineerDashboard() {
         }),
       });
 
-      const data = await response. json();
+      const data = await response.json();
 
       if (! response.ok) {
         throw new Error(data.message || "Failed to create report");
@@ -596,7 +596,7 @@ export default function ShiftEngineerDashboard() {
     if (selectedReport && selectedReport._id === reportId) {
       setSelectedReport({
         ...selectedReport,
-        remarks:  [...(selectedReport. remarks || []), newRemark],
+        remarks:  [...(selectedReport.remarks || []), newRemark],
       });
     }
   };
@@ -616,7 +616,7 @@ export default function ShiftEngineerDashboard() {
       logout(navigate);
     } catch (err) {
       console.error("Error logging out:", err);
-      alert("Failed to logout. Please try again.");
+      alert("Failed to logout.Please try again.");
     }
   };
 
@@ -727,9 +727,9 @@ export default function ShiftEngineerDashboard() {
                 <div className="relative">
                   <input
                     type="text"
-                    value={formData. serialNo}
+                    value={formData.serialNo}
                     onChange={(e) =>
-                      setFormData({ ...formData, serialNo: e.target.value. toUpperCase() })
+                      setFormData({ ...formData, serialNo: e.target.value.toUpperCase() })
                     }
                     className="w-full px-4 py-3 bg-stone-50 border border-stone-200 text-stone-800 text-sm focus:border-stone-400 focus:outline-none transition-colors font-medium rounded-sm uppercase"
                     placeholder="TR-2025-001"
@@ -746,9 +746,9 @@ export default function ShiftEngineerDashboard() {
                 </label>
                 <input
                   type="date"
-                  value={formData. date}
+                  value={formData.date}
                   onChange={(e) =>
-                    setFormData({ ...formData, date: e. target.value })
+                    setFormData({ ...formData, date: e.target.value })
                   }
                   className="w-full px-4 py-3 bg-stone-50 border border-stone-200 text-stone-800 text-sm focus:border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
                 />
@@ -790,7 +790,7 @@ export default function ShiftEngineerDashboard() {
                 <textarea
                   value={formData.description}
                   onChange={(e) =>
-                    setFormData({ ... formData, description:  e.target.value })
+                    setFormData({ ...formData, description:  e.target.value })
                   }
                   className="w-full px-4 py-3 border border-stone-200 bg-stone-50 text-stone-800 text-sm focus: border-stone-400 focus:outline-none transition-colors font-light resize-none rounded-sm"
                   rows="4"
@@ -805,7 +805,7 @@ export default function ShiftEngineerDashboard() {
                 <textarea
                   value={formData.recommendation}
                   onChange={(e) =>
-                    setFormData({ ...formData, recommendation: e.target. value })
+                    setFormData({ ...formData, recommendation: e.target.value })
                   }
                   className="w-full px-4 py-3 border border-stone-200 bg-stone-50 text-stone-800 text-sm focus:border-stone-400 focus:outline-none transition-colors font-light resize-none rounded-sm"
                   rows="3"
@@ -819,7 +819,7 @@ export default function ShiftEngineerDashboard() {
                 </label>
                 <input
                   type="text"
-                  value={formData. operationAction}
+                  value={formData.operationAction}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
@@ -836,7 +836,7 @@ export default function ShiftEngineerDashboard() {
                 <MultiSelectDropdown
                   selected={formData.referTo}
                   onChange={(selected) =>
-                    setFormData({ ... formData, referTo: selected })
+                    setFormData({ ...formData, referTo: selected })
                   }
                   options={DEPARTMENTS}
                   label="Refer to Departments *"
@@ -850,7 +850,7 @@ export default function ShiftEngineerDashboard() {
                 <select
                   value={formData.means}
                   onChange={(e) =>
-                    setFormData({ ...formData, means: e.target. value })
+                    setFormData({ ...formData, means: e.target.value })
                   }
                   className="w-full p-3 border border-stone-200 bg-stone-50 text-stone-800 text-sm font-light focus:border-stone-400 focus:outline-none transition-colors rounded-sm"
                 >

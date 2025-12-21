@@ -127,7 +127,7 @@ const RoleCard = ({
 
         {/* Features */}
         <div className="space-y-3">
-          {features. map((feature, index) => (
+          {features.map((feature, index) => (
             <div 
               key={index} 
               className="flex items-center gap-3"
@@ -141,7 +141,7 @@ const RoleCard = ({
                 }`}
               >
                 <feature.icon
-                  className={`w-3. 5 h-3.5 transition-colors duration-500 ${
+                  className={`w-3.5 h-3.5 transition-colors duration-500 ${
                     isHovered ?  "text-stone-400" : "text-stone-500"
                   }`}
                 />
@@ -270,7 +270,7 @@ export default function RoleSelectionPortal() {
               title="Engineer Portal"
               description="For Shift Engineers, Resident Engineers, OE staff, and system administrators"
               features={engineerFeatures}
-              badge="Primary Access"
+              
             />
 
             {/* Department Employee Card */}
@@ -314,13 +314,13 @@ export default function RoleSelectionPortal() {
                 <Zap className="w-3 h-3 text-white" />
               </div>
               <p className="text-stone-500 text-xs font-light">
-                © {new Date().getFullYear()} WAPDA. All rights reserved.
+                © {new Date().getFullYear()} WAPDA.All rights reserved.
               </p>
             </div>
             
             <div className="flex items-center gap-6">
-              <button className="text-stone-500 hover: text-stone-700 text-sm font-light transition-colors flex items-center gap-1. 5">
-                <FileText className="w-3. 5 h-3.5" />
+              <button className="text-stone-500 hover: text-stone-700 text-sm font-light transition-colors flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
                 Documentation
               </button>
               <button className="text-stone-500 hover:text-stone-700 text-sm font-light transition-colors flex items-center gap-1.5">
@@ -352,6 +352,6 @@ const AlertCircle = ({ className }) => (
   >
     <circle cx="12" cy="12" r="10" />
     <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12. 01" y2="16" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
   </svg>
 );

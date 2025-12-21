@@ -116,7 +116,7 @@ const FloatingSelect = ({
         }`}
       >
         {options.map((option) => (
-          <option key={option. value} value={option.value}>
+          <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
@@ -175,12 +175,12 @@ export default function DepartmentEmployeeAuth() {
     if (formData.password.length >= 8) strength++;
     if (/[A-Z]/.test(formData.password)) strength++;
     if (/[0-9]/.test(formData.password)) strength++;
-    if (/[^A-Za-z0-9]/. test(formData. password)) strength++;
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength++;
     setPasswordStrength(strength);
-  }, [formData. password]);
+  }, [formData.password]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e. target;
+    const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrorMessage("");
     setPendingApproval(false);
@@ -198,8 +198,8 @@ export default function DepartmentEmployeeAuth() {
 
     if (!formData.password) {
       errors.password = "Password is required";
-    } else if (! isLogin && formData.password. length < 8) {
-      errors. password = "Password must be at least 8 characters";
+    } else if (! isLogin && formData.password.length < 8) {
+      errors.password = "Password must be at least 8 characters";
     }
 
     if (!isLogin) {
@@ -219,7 +219,7 @@ export default function DepartmentEmployeeAuth() {
   };
 
   const handleSubmit = async (e) => {
-    e. preventDefault();
+    e.preventDefault();
 
     if (!validateForm()) return;
 
@@ -237,10 +237,10 @@ export default function DepartmentEmployeeAuth() {
             password: formData.password,
           }
         : {
-            name: formData. name,
+            name: formData.name,
             employeeId: formData.employeeId,
-            phoneNumber: formData. phoneNumber,
-            department: formData. department,
+            phoneNumber: formData.phoneNumber,
+            department: formData.department,
             email: formData.email,
             password:  formData.password,
           };
@@ -258,10 +258,10 @@ export default function DepartmentEmployeeAuth() {
 
       if (!response.ok) {
         // Check if it's a pending approval situation
-        if (data.message?. toLowerCase().includes("pending") || 
+        if (data.message?.toLowerCase().includes("pending") || 
             data.message?.toLowerCase().includes("approval")) {
           setPendingApproval(true);
-          throw new Error(data. message);
+          throw new Error(data.message);
         }
         throw new Error(data.message || "Something went wrong");
       }
@@ -369,7 +369,7 @@ export default function DepartmentEmployeeAuth() {
           </div>
 
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1. 5 bg-stone-800 rounded-sm mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-stone-800 rounded-sm mb-6">
               <Building2 className="w-4 h-4 text-stone-400" />
               <span className="text-stone-400 text-sm font-light">
                 Department Portal
@@ -452,7 +452,7 @@ export default function DepartmentEmployeeAuth() {
                   Pending Approval
                 </p>
                 <p className="text-amber-700 text-sm font-light">
-                  Your registration is under review. Please contact your
+                  Your registration is under review.Please contact your
                   administrator or check back later.
                 </p>
               </div>
@@ -463,7 +463,7 @@ export default function DepartmentEmployeeAuth() {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-sm flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium mb-0. 5">Error</p>
+                <p className="font-medium mb-0.5">Error</p>
                 <p className="font-light">{errorMessage}</p>
               </div>
             </div>
@@ -535,7 +535,7 @@ export default function DepartmentEmployeeAuth() {
                 onChange={handleInputChange}
                 label="Full Name"
                 icon={User}
-                error={validationErrors. name}
+                error={validationErrors.name}
                 autoComplete="name"
               />
             )}
@@ -548,7 +548,7 @@ export default function DepartmentEmployeeAuth() {
               onChange={handleInputChange}
               label="Employee ID"
               icon={IdCard}
-              error={validationErrors. employeeId}
+              error={validationErrors.employeeId}
               autoComplete="username"
             />
 
@@ -558,7 +558,7 @@ export default function DepartmentEmployeeAuth() {
                 id="email"
                 name="email"
                 type="email"
-                value={formData. email}
+                value={formData.email}
                 onChange={handleInputChange}
                 label="Email Address (Optional)"
                 icon={Mail}
@@ -572,11 +572,11 @@ export default function DepartmentEmployeeAuth() {
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
-                value={formData. phoneNumber}
+                value={formData.phoneNumber}
                 onChange={handleInputChange}
                 label="Phone Number"
                 icon={Phone}
-                error={validationErrors. phoneNumber}
+                error={validationErrors.phoneNumber}
                 autoComplete="tel"
               />
             )}
@@ -591,7 +591,7 @@ export default function DepartmentEmployeeAuth() {
                 onChange={handleInputChange}
                 label="Password"
                 icon={Lock}
-                error={validationErrors. password}
+                error={validationErrors.password}
                 autoComplete={isLogin ? "current-password" : "new-password"}
                 rightElement={
                   <button
@@ -611,7 +611,7 @@ export default function DepartmentEmployeeAuth() {
               {! isLogin && formData.password && (
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex-1 flex gap-1">
-                    {[1, 2, 3, 4]. map((level) => (
+                    {[1, 2, 3, 4].map((level) => (
                       <div
                         key={level}
                         className={`h-1 flex-1 rounded-full transition-all duration-300 ${
@@ -697,8 +697,8 @@ export default function DepartmentEmployeeAuth() {
                   Admin Approval Required
                 </p>
                 <p className="text-blue-700 text-sm font-light">
-                  Your account will be reviewed by an administrator. You'll be
-                  able to sign in once approved. 
+                  Your account will be reviewed by an administrator.You'll be
+                  able to sign in once approved.
                 </p>
               </div>
             </div>

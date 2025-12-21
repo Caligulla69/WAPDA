@@ -112,7 +112,7 @@ const FloatingSelect = ({
         }`}
       >
         {options.map((option) => (
-          <option key={option. value} value={option.value}>
+          <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
@@ -170,12 +170,12 @@ export default function ModernWhiteAuthForm() {
     if (formData.password.length >= 8) strength++;
     if (/[A-Z]/.test(formData.password)) strength++;
     if (/[0-9]/.test(formData.password)) strength++;
-    if (/[^A-Za-z0-9]/. test(formData. password)) strength++;
+    if (/[^A-Za-z0-9]/.test(formData.password)) strength++;
     setPasswordStrength(strength);
-  }, [formData. password]);
+  }, [formData.password]);
 
   const handleInputChange = (e) => {
-    const { name, value } = e. target;
+    const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrorMessage("");
     // Clear specific validation error when user types
@@ -193,7 +193,7 @@ export default function ModernWhiteAuthForm() {
       errors.email = "Please enter a valid email";
     }
 
-    if (!formData. password) {
+    if (!formData.password) {
       errors.password = "Password is required";
     } else if (! isLogin && formData.password.length < 8) {
       errors.password = "Password must be at least 8 characters";
@@ -204,7 +204,7 @@ export default function ModernWhiteAuthForm() {
         errors.name = "Name is required";
       }
       if (!formData.phoneNumber) {
-        errors. phoneNumber = "Phone number is required";
+        errors.phoneNumber = "Phone number is required";
       }
       if (formData.password !== formData.confirmPassword) {
         errors.confirmPassword = "Passwords do not match";
@@ -216,7 +216,7 @@ export default function ModernWhiteAuthForm() {
   };
 
   const handleSubmit = async (e) => {
-    e. preventDefault();
+    e.preventDefault();
 
     if (!validateForm()) return;
 
@@ -235,8 +235,8 @@ export default function ModernWhiteAuthForm() {
           }
         : {
             name: formData.name,
-            phoneNumber: formData. phoneNumber,
-            department: formData. department,
+            phoneNumber: formData.phoneNumber,
+            department: formData.department,
             email: formData.email,
             password:  formData.password,
             role: formData.role,
@@ -248,17 +248,17 @@ export default function ModernWhiteAuthForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON. stringify(payload),
+        body: JSON.stringify(payload),
       });
 
-      const data = await response. json();
+      const data = await response.json();
 
-      if (! response.ok) throw new Error(data. message || "Something went wrong");
+      if (! response.ok) throw new Error(data.message || "Something went wrong");
 
       setActionSuccess(true);
 
-      if (data?. user?.role) {
-        const role = data.user. role;
+      if (data?.user?.role) {
+        const role = data.user.role;
         const roleRoutes = {
           admin: "/adminDashboard",
           shift_engineer: "/shiftDashboard",
@@ -438,7 +438,7 @@ export default function ModernWhiteAuthForm() {
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-sm flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium mb-0. 5">Error</p>
+                <p className="font-medium mb-0.5">Error</p>
                 <p className="font-light">{errorMessage}</p>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function ModernWhiteAuthForm() {
                 setIsLogin(true);
                 resetForm();
               }}
-              className={`flex-1 py-2. 5 text-center transition-all duration-300 text-sm font-light tracking-wide rounded-sm ${
+              className={`flex-1 py-2.5 text-center transition-all duration-300 text-sm font-light tracking-wide rounded-sm ${
                 isLogin
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500 hover:text-stone-700"
@@ -505,11 +505,11 @@ export default function ModernWhiteAuthForm() {
               id="email"
               name="email"
               type="email"
-              value={formData. email}
+              value={formData.email}
               onChange={handleInputChange}
               label="Email Address"
               icon={Mail}
-              error={validationErrors. email}
+              error={validationErrors.email}
               autoComplete="email"
             />
 
@@ -519,7 +519,7 @@ export default function ModernWhiteAuthForm() {
                 id="phoneNumber"
                 name="phoneNumber"
                 type="tel"
-                value={formData. phoneNumber}
+                value={formData.phoneNumber}
                 onChange={handleInputChange}
                 label="Phone Number"
                 icon={Phone}
@@ -582,7 +582,7 @@ export default function ModernWhiteAuthForm() {
               {! isLogin && formData.password && (
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex-1 flex gap-1">
-                    {[1, 2, 3, 4]. map((level) => (
+                    {[1, 2, 3, 4].map((level) => (
                       <div
                         key={level}
                         className={`h-1 flex-1 rounded-full transition-all duration-300 ${
@@ -614,7 +614,7 @@ export default function ModernWhiteAuthForm() {
                 id="confirmPassword"
                 name="confirmPassword"
                 type={showPassword ? "text" :  "password"}
-                value={formData. confirmPassword}
+                value={formData.confirmPassword}
                 onChange={handleInputChange}
                 label="Confirm Password"
                 icon={Lock}

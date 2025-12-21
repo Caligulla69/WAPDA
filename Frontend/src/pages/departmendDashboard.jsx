@@ -47,11 +47,11 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
     },
   };
 
-  const config = statusConfig[report.status] || statusConfig. Pending;
+  const config = statusConfig[report.status] || statusConfig.Pending;
   
   // Handle both array and string for referTo
   const departments = Array.isArray(report.referTo)
-    ? report. referTo
+    ? report.referTo
     :  [report.referTo];
 
   return (
@@ -69,8 +69,8 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
               <span
                 className={`px-2.5 py-1 text-xs font-medium border ${config.color} flex items-center gap-1.5 whitespace-nowrap rounded-sm`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${config. dotColor}`} />
-                {report. status. toUpperCase()}
+                <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
+                {report.status.toUpperCase()}
               </span>
             </div>
             <p className="text-stone-500 text-sm font-light truncate">
@@ -85,8 +85,8 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
         </p>
 
         {/* Departments Tags */}
-        <div className="flex flex-wrap gap-1. 5 mb-4">
-          {departments. map((dept, idx) => (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {departments.map((dept, idx) => (
             <span
               key={idx}
               className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-light rounded-sm ${
@@ -103,7 +103,7 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-stone-500 font-light border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-3. 5 h-3.5 flex-shrink-0 text-stone-400" />
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
             <span className="whitespace-nowrap">{report.date}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -112,7 +112,7 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
           </div>
           <div className="flex items-center gap-2">
             <User className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
-            <span className="truncate">{report. notifiedBy}</span>
+            <span className="truncate">{report.notifiedBy}</span>
           </div>
         </div>
       </div>
@@ -171,7 +171,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
       ...r,
       actionText: r.text
         .replace("Department action submitted:  ", "")
-        .split(".  Report")[0],
+        .split(". Report")[0],
       wasRejected: r.text.includes("Report rejected by OE"),
     }));
 
@@ -214,8 +214,8 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                   </p>
                   <p className="text-xs sm:text-sm text-orange-800 font-light">
                     This report was reviewed by OE Department and requires
-                    revision.  Please review the feedback below, update your
-                    action, and resubmit. 
+                    revision. Please review the feedback below, update your
+                    action, and resubmit.
                   </p>
                 </div>
               </div>
@@ -225,11 +225,11 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           {/* Quick Info */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { label: "Status", value: report. status },
-              { label: "Current Stage", value: report. currentStage },
+              { label: "Status", value: report.status },
+              { label: "Current Stage", value: report.currentStage },
               { label: "Reported By", value: report.notifiedBy },
-              { label: "Date", value: report. date },
-              { label: "Time", value: report. time },
+              { label: "Date", value: report.date },
+              { label: "Time", value: report.time },
               { label: "Means", value: report.means },
             ].map((item, idx) => (
               <div
@@ -255,8 +255,8 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               {departments.map((dept, idx) => (
                 <span
                   key={idx}
-                  className={`inline-flex items-center gap-1. 5 px-3 py-1.5 text-sm font-light rounded-sm border ${
-                    dept === user?. department
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-light rounded-sm border ${
+                    dept === user?.department
                       ?  "bg-stone-800 text-white border-stone-800"
                       :  "bg-stone-100 text-stone-700 border-stone-200"
                   }`}
@@ -298,7 +298,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                 Recommendation
               </label>
               <p className="text-stone-800 font-light leading-relaxed text-sm break-words">
-                {report. recommendation}
+                {report.recommendation}
               </p>
             </div>
           )}
@@ -379,12 +379,12 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               {wasSentBackForRevision && (
                 <p className="text-xs text-amber-800 mb-3 font-light">
                   Please review the OE feedback in remarks below and provide an
-                  updated action. 
+                  updated action.
                 </p>
               )}
               <textarea
                 value={departmentAction}
-                onChange={(e) => setDepartmentAction(e.target. value)}
+                onChange={(e) => setDepartmentAction(e.target.value)}
                 placeholder={
                   wasSentBackForRevision
                     ? "Describe the revised action taken by your department..."
@@ -395,20 +395,20 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               />
               <button
                 onClick={handleSendToOE}
-                disabled={isSendingToOE || ! departmentAction. trim()}
+                disabled={isSendingToOE || ! departmentAction.trim()}
                 className="mt-4 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 rounded-sm"
               >
                 {isSendingToOE ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {wasSentBackForRevision ? "RESUBMITTING..." : "SENDING... "}
+                    {wasSentBackForRevision ? "RESUBMITTING..." : "SENDING..."}
                   </>
                 ) : (
                   <>
                     <Eye className="w-4 h-4" />
                     {wasSentBackForRevision
                       ? "RESUBMIT TO OE DEPARTMENT"
-                      :  "SEND TO OE DEPARTMENT"}
+                      :  "SUBMIT DEPARTMENT ACTION"}
                   </>
                 )}
               </button>
@@ -441,7 +441,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                           : "border-stone-300"
                       } rounded-r-sm`}
                     >
-                      <div className="flex flex-wrap items-center gap-2 mb-1. 5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <MessageSquare
                           className={`w-3.5 h-3.5 ${
                             isOEFeedback
@@ -491,7 +491,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               <input
                 type="text"
                 value={remarkText}
-                onChange={(e) => setRemarkText(e. target.value)}
+                onChange={(e) => setRemarkText(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
                 placeholder="Add a remark or update..."
                 className="flex-1 px-4 py-3 bg-stone-50 border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus: border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
@@ -541,14 +541,14 @@ export default function DepartmentDashboard() {
         throw new Error(errorData.message || "Failed to fetch user info");
       }
 
-      const userData = await userResponse. json();
+      const userData = await userResponse.json();
       console.log("✅ User data received:", userData);
-      setUser(userData. user);
+      setUser(userData.user);
 
       setError(null);
     } catch (err) {
-      console. error("💥 Error in fetchUser", err);
-      setError(err.message || "Failed to load data.  Please try again.");
+      console.error("💥 Error in fetchUser", err);
+      setError(err.message || "Failed to load data. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -623,7 +623,7 @@ export default function DepartmentDashboard() {
       }
 
       const data = await response.json();
-      console.log("✅ Report sent to OE:", data. report);
+      console.log("✅ Report sent to OE:", data.report);
 
       // Update reports list
       setReports(reports.map((r) => (r._id === reportId ?  data.report : r)));
@@ -646,15 +646,15 @@ export default function DepartmentDashboard() {
 
     return reports.filter((r) => {
       // Handle both array and string for referTo
-      const departments = Array.isArray(r.referTo) ? r.referTo : [r. referTo];
+      const departments = Array.isArray(r.referTo) ? r.referTo : [r.referTo];
       
       // Check if user's department is in the referTo array
-      const matchesDepartment = departments.includes(user. department);
+      const matchesDepartment = departments.includes(user.department);
 
       // Filter by search term - include departments in search
       const departmentsStr = departments.join(" ");
       const matchesSearch =
-        r.serialNo.toLowerCase().includes(searchTerm. toLowerCase()) ||
+        r.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.apparatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         departmentsStr.toLowerCase().includes(searchTerm.toLowerCase());
@@ -677,7 +677,7 @@ export default function DepartmentDashboard() {
         body:  JSON.stringify({ text }),
       });
 
-      if (!response. ok) {
+      if (!response.ok) {
         const data = await response.json();
         throw new Error(data.message || "Failed to add remark");
       }
@@ -700,7 +700,7 @@ export default function DepartmentDashboard() {
       logout(navigate);
     } catch (err) {
       console.error("Error logging out:", err);
-      alert("Failed to logout. Please try again.");
+      alert("Failed to logout.Please try again.");
     }
   };
 
@@ -803,13 +803,13 @@ export default function DepartmentDashboard() {
             },
             {
               label: "Closed",
-              value:  departmentReports. filter((r) => r.status === "Closed").length,
+              value:  departmentReports.filter((r) => r.status === "Closed").length,
               color: "emerald",
             },
           ].map((stat, idx) => (
             <div key={idx} className="bg-white border border-stone-200 p-5 rounded-sm">
               <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
-                {stat. label}
+                {stat.label}
               </p>
               <p className="text-3xl font-light text-stone-800">{stat.value}</p>
             </div>
@@ -875,7 +875,7 @@ export default function DepartmentDashboard() {
               <ReportCard
                 key={report._id}
                 report={report}
-                userDepartment={user. department}
+                userDepartment={user.department}
                 onClick={() => setSelectedReport(report)}
               />
             ))
