@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import {
   AlertCircle,
   CheckCircle,
@@ -18,12 +18,276 @@ import {
   LogOut,
   Building2,
   Calendar,
+  Bell,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import API_URL from "../../utils/api";
 import { logout } from "../../utils/logout";
 import { useNavigate } from "react-router-dom";
 
-const ReportCard = ({ report, onClick, userDepartment }) => {
+// ============================================
+// Notification Sound Hook - Fixed to prevent re-renders
+// ============================================
+const useNotificationSound = () => {
+  const audioContextRef = useRef(null);
+  const isMutedRef = useRef(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("notificationMuted") === "true";
+    }
+    return false;
+  });
+  const [isMuted, setIsMutedState] = useState(isMutedRef.current);
+
+  // Initialize muted state from localStorage only once
+  useEffect(() => {
+    const saved = localStorage.getItem("notificationMuted");
+    const muted = saved === "true";
+    isMutedRef.current = muted;
+    setIsMutedState(muted);
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    if (isMutedRef.current) return;
+
+    try {
+      if (! audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const audioContext = audioContextRef. current;
+
+      if (audioContext.state === "suspended") {
+        audioContext. resume();
+      }
+
+      const now = audioContext.currentTime;
+
+      // First bell tone
+      const osc1 = audioContext. createOscillator();
+      const gain1 = audioContext. createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioContext. destination);
+      osc1.frequency. setValueAtTime(830, now);
+      osc1.type = "sine";
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain. exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc1.start(now);
+      osc1.stop(now + 0.4);
+
+      // Second bell tone
+      setTimeout(() => {
+        if (audioContextRef.current) {
+          const ctx = audioContextRef. current;
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.connect(gain2);
+          gain2.connect(ctx. destination);
+          osc2.frequency. setValueAtTime(1046, ctx.currentTime);
+          osc2.type = "sine";
+          gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc2.start(ctx.currentTime);
+          osc2.stop(ctx.currentTime + 0.3);
+        }
+      }, 120);
+    } catch (error) {
+      console.log("Audio playback failed:", error);
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const newValue = !isMutedRef.current;
+    isMutedRef. current = newValue;
+    localStorage.setItem("notificationMuted", String(newValue));
+    setIsMutedState(newValue);
+  }, []);
+
+  return { playNotificationSound, isMuted, toggleMute };
+};
+
+// ============================================
+// Notification Toast Component
+// ============================================
+const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, onViewReport }) => {
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm w-full pointer-events-none">
+      {notifications. slice(0, 3).map((notification, index) => (
+        <div
+          key={notification.id}
+          className="bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden pointer-events-auto"
+          style={{
+            animation: "slideIn 0.3s ease-out forwards",
+            animationDelay:  `${index * 50}ms`,
+          }}
+        >
+          <div className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 bg-stone-100 border border-stone-200 flex items-center justify-center flex-shrink-0">
+                <Bell className="w-4 h-4 text-stone-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-light text-stone-800">
+                      New Report Assigned
+                    </p>
+                    <p className="text-xs text-stone-500 font-light mt-0.5">
+                      {notification.report.serialNo}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onDismiss(notification.id)}
+                    className="text-stone-400 hover:text-stone-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-stone-500 font-light mt-2 line-clamp-1">
+                  {notification.report.apparatus}
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      onViewReport(notification.report);
+                      onDismiss(notification.id);
+                    }}
+                    className="px-3 py-1.5 bg-stone-900 text-white text-xs font-light hover:bg-stone-800 transition-colors"
+                  >
+                    VIEW
+                  </button>
+                  <button
+                    onClick={() => onDismiss(notification.id)}
+                    className="px-3 py-1.5 text-stone-500 text-xs font-light hover:bg-stone-100 transition-colors"
+                  >
+                    DISMISS
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="h-0.5 bg-stone-100">
+            <div
+              className="h-full bg-stone-400"
+              style={{
+                animation: "shrink 5s linear forwards",
+              }}
+            />
+          </div>
+        </div>
+      ))}
+
+      {notifications.length > 3 && (
+        <div className="bg-stone-800 text-white text-xs text-center py-2 px-4 pointer-events-auto">
+          +{notifications.length - 3} more notifications
+        </div>
+      )}
+
+      {notifications.length > 1 && (
+        <button
+          onClick={onDismissAll}
+          className="w-full py-2 text-xs text-stone-500 hover:text-stone-700 transition-colors pointer-events-auto"
+        >
+          Dismiss all
+        </button>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform:  translateX(0);
+          }
+        }
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
+    </div>
+  );
+});
+
+// ============================================
+// Notification Bell Component - Fixed to prevent re-renders
+// ============================================
+const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
+  const [isShaking, setIsShaking] = useState(false);
+  const prevCountRef = useRef(count);
+
+  useEffect(() => {
+    if (count > prevCountRef.current) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 600);
+      prevCountRef.current = count;
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = count;
+  }, [count]);
+
+  const handleMuteClick = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onToggleMute();
+  }, [onToggleMute]);
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={handleMuteClick}
+        className="p-2 hover:bg-stone-800 transition-colors border border-transparent hover:border-stone-700"
+        title={isMuted ? "Unmute notifications" : "Mute notifications"}
+      >
+        {isMuted ? (
+          <VolumeX className="w-4 h-4 text-stone-500" />
+        ) : (
+          <Volume2 className="w-4 h-4 text-stone-400" />
+        )}
+      </button>
+
+      <div
+        className={`relative p-2.5 border border-stone-700 ${
+          count > 0 ? "bg-stone-800" :  "bg-transparent"
+        }`}
+        style={{
+          animation: isShaking ? "bellShake 0.6s ease-in-out" : "none",
+        }}
+      >
+        <Bell className={`w-4 h-4 ${count > 0 ?  "text-white" : "text-stone-400"}`} />
+
+        {count > 0 && (
+          <span className="absolute -top-1. 5 -right-1.5 min-w-[18px] h-[18px] bg-amber-500 text-white text-[10px] font-medium flex items-center justify-center px-1">
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
+
+        <style>{`
+          @keyframes bellShake {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(-12deg); }
+            30% { transform: rotate(12deg); }
+            45% { transform: rotate(-8deg); }
+            60% { transform:  rotate(8deg); }
+            75% { transform: rotate(-4deg); }
+            90% { transform: rotate(4deg); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+});
+
+// ============================================
+// Report Card Component
+// ============================================
+const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
   const statusConfig = {
     Pending: {
       color: "bg-amber-50 text-amber-700 border-amber-200",
@@ -33,8 +297,8 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
       color: "bg-blue-50 text-blue-700 border-blue-200",
       dotColor: "bg-blue-400",
     },
-    "Needs Revision":  {
-      color:  "bg-orange-50 text-orange-700 border-orange-200",
+    "Needs Revision": {
+      color: "bg-orange-50 text-orange-700 border-orange-200",
       dotColor:  "bg-orange-400",
     },
     Closed: {
@@ -43,22 +307,28 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
     },
     Rejected: {
       color: "bg-red-50 text-red-700 border-red-200",
-      dotColor: "bg-red-400",
+      dotColor:  "bg-red-400",
     },
   };
 
-  const config = statusConfig[report.status] || statusConfig.Pending;
-  
-  // Handle both array and string for referTo
+  const config = statusConfig[report.status] || statusConfig. Pending;
+
   const departments = Array.isArray(report.referTo)
-    ? report.referTo
-    :  [report.referTo];
+    ? report. referTo
+    : [report. referTo];
 
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-stone-200 hover:border-stone-300 hover:shadow-sm transition-all duration-300 cursor-pointer group rounded-sm overflow-hidden"
+      className={`bg-white border hover:border-stone-300 hover:shadow-sm transition-all duration-300 cursor-pointer group overflow-hidden ${
+        isNew ? "border-amber-300 shadow-sm" : "border-stone-200"
+      }`}
     >
+      {isNew && (
+        <div className="bg-amber-500 text-white text-xs font-light tracking-wider px-3 py-1 text-center">
+          NEW REPORT ASSIGNED
+        </div>
+      )}
       <div className="p-5 sm:p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1 min-w-0">
@@ -67,32 +337,31 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
                 {report.serialNo}
               </span>
               <span
-                className={`px-2.5 py-1 text-xs font-medium border ${config.color} flex items-center gap-1.5 whitespace-nowrap rounded-sm`}
+                className={`px-2.5 py-1 text-xs font-medium border ${config.color} flex items-center gap-1.5 whitespace-nowrap`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
-                {report.status.toUpperCase()}
+                <span className={`w-1.5 h-1.5 rounded-full ${config. dotColor}`} />
+                {report. status. toUpperCase()}
               </span>
             </div>
             <p className="text-stone-500 text-sm font-light truncate">
               {report.apparatus}
             </p>
           </div>
-          <ChevronRight className="w-5 h-5 text-stone-300 group-hover: text-stone-600 group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 ml-3" />
+          <ChevronRight className="w-5 h-5 text-stone-300 group-hover:text-stone-600 group-hover:translate-x-1 transition-all duration-200 flex-shrink-0 ml-3" />
         </div>
 
         <p className="text-stone-600 font-light leading-relaxed mb-4 line-clamp-2 text-sm sm:text-base">
-          {report.description}
+          {report. description}
         </p>
 
-        {/* Departments Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-4">
-          {departments.map((dept, idx) => (
+        <div className="flex flex-wrap gap-1. 5 mb-4">
+          {departments. map((dept, idx) => (
             <span
               key={idx}
-              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-light rounded-sm ${
+              className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-light ${
                 dept === userDepartment
                   ? "bg-stone-800 text-white"
-                  :  "bg-stone-100 text-stone-600"
+                  : "bg-stone-100 text-stone-600"
               }`}
             >
               <Building2 className="w-3 h-3" />
@@ -103,7 +372,7 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-stone-500 font-light border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
+            <Calendar className="w-3. 5 h-3.5 flex-shrink-0 text-stone-400" />
             <span className="whitespace-nowrap">{report.date}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -118,15 +387,17 @@ const ReportCard = ({ report, onClick, userDepartment }) => {
       </div>
     </div>
   );
-};
+});
 
-const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
+// ============================================
+// Report Detail Component
+// ============================================
+const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, user }) => {
   const [remarkText, setRemarkText] = useState("");
   const [departmentAction, setDepartmentAction] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingToOE, setIsSendingToOE] = useState(false);
 
-  // Handle both array and string for referTo
   const departments = Array.isArray(report.referTo)
     ? report.referTo
     : [report.referTo];
@@ -144,34 +415,30 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
       alert("Please describe the department action taken before sending to OE");
       return;
     }
-
     setIsSendingToOE(true);
     await onSendToOE(report._id, departmentAction);
     setIsSendingToOE(false);
   };
 
-  // Check if report can be sent to OE
   const canSendToOE =
     report.currentStage === "Department" &&
     report.status !== "Closed" &&
     report.status !== "Rejected";
 
-  // Check if report was sent back for revision
   const wasSentBackForRevision =
     report.status === "Rejected" && report.currentStage === "Department";
 
-  // Extract previous department actions from remarks
   const departmentActionHistory = report.remarks
     ?.filter(
       (r) =>
-        r.text.includes("Department action submitted: ") ||
+        r. text.includes("Department action submitted:  ") ||
         r.text.includes("Report rejected by OE")
     )
     .map((r) => ({
       ...r,
       actionText: r.text
         .replace("Department action submitted:  ", "")
-        .split(". Report")[0],
+        .split(".  Report")[0],
       wasRejected: r.text.includes("Report rejected by OE"),
     }));
 
@@ -181,7 +448,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
       onClick={onClose}
     >
       <div
-        className="bg-stone-50 w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden rounded-sm shadow-2xl flex flex-col"
+        className="bg-stone-50 w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden shadow-2xl flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -196,16 +463,16 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           </div>
           <button
             onClick={onClose}
-            className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10 rounded-sm"
+            className="text-white/70 hover:text-white transition-colors p-1 hover:bg-white/10"
           >
             <X className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-5">
-          {/* Status Alert - If sent back for revision */}
+          {/* Status Alert */}
           {wasSentBackForRevision && (
-            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded-sm">
+            <div className="bg-orange-50 border-l-4 border-orange-500 p-4">
               <div className="flex items-start gap-3">
                 <RefreshCw className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
@@ -213,9 +480,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                     Report Sent Back for Revision
                   </p>
                   <p className="text-xs sm:text-sm text-orange-800 font-light">
-                    This report was reviewed by OE Department and requires
-                    revision. Please review the feedback below, update your
-                    action, and resubmit.
+                    Please review the feedback below, update your action, and resubmit.
                   </p>
                 </div>
               </div>
@@ -223,19 +488,16 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           )}
 
           {/* Quick Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: "Status", value: report.status },
+              { label: "Status", value: report. status },
               { label: "Current Stage", value: report.currentStage },
-              { label: "Reported By", value: report.notifiedBy },
-              { label: "Date", value: report.date },
+              { label:  "Reported By", value: report.notifiedBy },
+              { label: "Date", value: report. date },
               { label: "Time", value: report.time },
-              { label: "Means", value: report.means },
+              { label: "Means", value: report. means },
             ].map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-white border border-stone-200 p-4 rounded-sm"
-              >
+              <div key={idx} className="bg-white border border-stone-200 p-4">
                 <label className="block text-xs font-medium text-stone-500 mb-2 tracking-wider uppercase">
                   {item.label}
                 </label>
@@ -247,7 +509,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           </div>
 
           {/* Referred Departments */}
-          <div className="bg-white border border-stone-200 p-5 rounded-sm">
+          <div className="bg-white border border-stone-200 p-5">
             <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
               Referred Departments
             </label>
@@ -255,15 +517,15 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               {departments.map((dept, idx) => (
                 <span
                   key={idx}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-light rounded-sm border ${
-                    dept === user?.department
+                  className={`inline-flex items-center gap-1. 5 px-3 py-1.5 text-sm font-light border ${
+                    dept === user?. department
                       ?  "bg-stone-800 text-white border-stone-800"
                       :  "bg-stone-100 text-stone-700 border-stone-200"
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   {dept}
-                  {dept === user?.department && (
+                  {dept === user?. department && (
                     <span className="text-xs opacity-75">(You)</span>
                   )}
                 </span>
@@ -272,7 +534,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           </div>
 
           {/* Apparatus */}
-          <div className="bg-white border border-stone-200 p-5 rounded-sm">
+          <div className="bg-white border border-stone-200 p-5">
             <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
               Apparatus Affected
             </label>
@@ -282,7 +544,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           </div>
 
           {/* Description */}
-          <div className="bg-white border border-stone-200 p-5 rounded-sm">
+          <div className="bg-white border border-stone-200 p-5">
             <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
               Problem Description
             </label>
@@ -293,19 +555,19 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
 
           {/* Recommendation */}
           {report.recommendation && (
-            <div className="bg-white border border-stone-200 p-5 rounded-sm">
+            <div className="bg-white border border-stone-200 p-5">
               <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
                 Recommendation
               </label>
               <p className="text-stone-800 font-light leading-relaxed text-sm break-words">
-                {report.recommendation}
+                {report. recommendation}
               </p>
             </div>
           )}
 
           {/* Operation Action */}
           {report.operationAction && (
-            <div className="bg-white border border-stone-200 p-5 rounded-sm">
+            <div className="bg-white border border-stone-200 p-5">
               <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
                 Operation Action Taken
               </label>
@@ -317,7 +579,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
 
           {/* Action History */}
           {departmentActionHistory && departmentActionHistory.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 p-5 rounded-sm">
+            <div className="bg-blue-50 border border-blue-200 p-5">
               <label className="block text-xs font-medium text-blue-900 mb-4 tracking-wider uppercase flex items-center gap-2">
                 <Clock className="w-4 h-4" />
                 Previous Department Actions
@@ -329,8 +591,8 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                     className={`border-l-2 pl-4 py-2 ${
                       action.wasRejected
                         ? "border-orange-400 bg-orange-50/50"
-                        : "border-blue-400"
-                    } rounded-r-sm`}
+                        :  "border-blue-400"
+                    }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                       <span className="text-xs font-medium text-blue-900">
@@ -357,9 +619,9 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
             </div>
           )}
 
-          {/* Department Action - Current/Latest or Input */}
+          {/* Department Action Section */}
           {report.departmentAction && ! canSendToOE ?  (
-            <div className="bg-emerald-50 border border-emerald-200 p-5 rounded-sm">
+            <div className="bg-emerald-50 border border-emerald-200 p-5">
               <label className="block text-xs font-medium text-emerald-900 mb-3 tracking-wider uppercase flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
                 Current Department Action (Submitted)
@@ -369,7 +631,7 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               </p>
             </div>
           ) : canSendToOE ?  (
-            <div className="bg-amber-50 border border-amber-200 p-5 rounded-sm">
+            <div className="bg-amber-50 border border-amber-200 p-5">
               <label className="block text-xs font-medium text-amber-900 mb-3 tracking-wider uppercase flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
                 {wasSentBackForRevision
@@ -378,37 +640,36 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
               </label>
               {wasSentBackForRevision && (
                 <p className="text-xs text-amber-800 mb-3 font-light">
-                  Please review the OE feedback in remarks below and provide an
-                  updated action.
+                  Please review the OE feedback and provide an updated action. 
                 </p>
               )}
               <textarea
                 value={departmentAction}
-                onChange={(e) => setDepartmentAction(e.target.value)}
+                onChange={(e) => setDepartmentAction(e.target. value)}
                 placeholder={
                   wasSentBackForRevision
                     ? "Describe the revised action taken by your department..."
                     : "Describe the action taken by your department..."
                 }
                 rows={4}
-                className="w-full px-4 py-3 bg-white border border-amber-200 text-sm text-stone-800 placeholder-stone-400 focus:border-amber-400 focus:outline-none transition-colors font-light resize-none rounded-sm"
+                className="w-full px-4 py-3 bg-white border border-amber-200 text-sm text-stone-800 placeholder-stone-400 focus:border-amber-400 focus: outline-none transition-colors font-light resize-none"
               />
               <button
                 onClick={handleSendToOE}
-                disabled={isSendingToOE || ! departmentAction.trim()}
-                className="mt-4 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 rounded-sm"
+                disabled={isSendingToOE || ! departmentAction. trim()}
+                className="mt-4 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isSendingToOE ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {wasSentBackForRevision ? "RESUBMITTING..." : "SENDING..."}
+                    {wasSentBackForRevision ? "RESUBMITTING..." : "SENDING... "}
                   </>
                 ) : (
                   <>
                     <Eye className="w-4 h-4" />
                     {wasSentBackForRevision
                       ? "RESUBMIT TO OE DEPARTMENT"
-                      :  "SUBMIT DEPARTMENT ACTION"}
+                      : "SUBMIT DEPARTMENT ACTION"}
                   </>
                 )}
               </button>
@@ -416,12 +677,19 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
           ) : null}
 
           {/* Remarks */}
-          <div className="bg-white border border-stone-200 p-5 rounded-sm">
-            <label className="block text-xs font-medium text-stone-500 mb-4 tracking-wider uppercase">
-              Remarks & Updates
-            </label>
-            <div className="space-y-4 mb-5">
-              {report.remarks && report.remarks.length > 0 ?  (
+          <div className="bg-white border border-stone-200 overflow-hidden">
+            <div className="p-4 border-b border-stone-100 bg-stone-50">
+              <label className="text-xs font-medium text-stone-500 tracking-wider uppercase flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Remarks & Updates
+                <span className="ml-auto text-stone-400 font-normal">
+                  {report.remarks?. length || 0} entries
+                </span>
+              </label>
+            </div>
+
+            <div className="max-h-64 overflow-y-auto divide-y divide-stone-100">
+              {report.remarks && report.remarks.length > 0 ? (
                 report.remarks.map((remark, idx) => {
                   const isOEFeedback =
                     remark.text.includes("Report rejected by OE") ||
@@ -433,15 +701,15 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                   return (
                     <div
                       key={idx}
-                      className={`border-l-2 pl-4 py-2 ${
+                      className={`p-4 border-l-2 ${
                         isOEFeedback
-                          ? "border-orange-400 bg-orange-50/50"
+                          ? "border-l-orange-400 bg-orange-50/50"
                           : isDepartmentAction
-                          ? "border-blue-400 bg-blue-50/50"
-                          : "border-stone-300"
-                      } rounded-r-sm`}
+                          ?  "border-l-blue-400 bg-blue-50/50"
+                          : "border-l-stone-200"
+                      }`}
                     >
-                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1. 5">
                         <MessageSquare
                           className={`w-3.5 h-3.5 ${
                             isOEFeedback
@@ -460,19 +728,19 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                               : "text-stone-700"
                           }`}
                         >
-                          {remark.user}
+                          {remark. user}
                         </span>
                         <span className="text-xs text-stone-400">
                           {new Date(remark.timestamp).toLocaleString()}
                         </span>
                       </div>
                       <p
-                        className={`text-sm font-light break-words ${
+                        className={`text-sm font-light break-words pl-5 ${
                           isOEFeedback
-                            ? "text-orange-800"
+                            ?  "text-orange-800"
                             : isDepartmentAction
-                            ?  "text-blue-800"
-                            : "text-stone-600"
+                            ? "text-blue-800"
+                            :  "text-stone-600"
                         }`}
                       >
                         {remark.text}
@@ -481,36 +749,42 @@ const ReportDetail = ({ report, onClose, onAddRemark, onSendToOE, user }) => {
                   );
                 })
               ) : (
-                <p className="text-stone-400 font-light text-sm italic">
-                  No remarks yet
-                </p>
+                <div className="p-8 text-center">
+                  <MessageSquare className="w-8 h-8 text-stone-200 mx-auto mb-2" />
+                  <p className="text-stone-400 font-light text-sm">No remarks yet</p>
+                </div>
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-stone-100">
-              <input
-                type="text"
-                value={remarkText}
-                onChange={(e) => setRemarkText(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
-                placeholder="Add a remark or update..."
-                className="flex-1 px-4 py-3 bg-stone-50 border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus: border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
-              />
-              <button
-                onClick={handleAddRemark}
-                disabled={isSubmitting || !remarkText.trim()}
-                className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white font-light text-sm tracking-wide transition-all duration-200 disabled: opacity-50 disabled:cursor-not-allowed whitespace-nowrap rounded-sm"
-              >
-                {isSubmitting ? "ADDING..." : "ADD REMARK"}
-              </button>
+            <div className="p-4 border-t border-stone-100 bg-stone-50">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <input
+                  type="text"
+                  value={remarkText}
+                  onChange={(e) => setRemarkText(e. target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
+                  placeholder="Add a remark or update..."
+                  className="flex-1 px-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus: border-stone-400 focus:outline-none transition-colors font-light"
+                />
+                <button
+                  onClick={handleAddRemark}
+                  disabled={isSubmitting || !remarkText.trim()}
+                  className="px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isSubmitting ? "ADDING..." : "ADD REMARK"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
   );
-};
+});
 
+// ============================================
+// Main Dashboard Component
+// ============================================
 export default function DepartmentDashboard() {
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -521,192 +795,261 @@ export default function DepartmentDashboard() {
   const [user, setUser] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Notification states
+  const [notifications, setNotifications] = useState([]);
+  const [newReportIds, setNewReportIds] = useState(new Set());
+  const previousReportIdsRef = useRef(new Set());
+
   const navigate = useNavigate();
+  const { playNotificationSound, isMuted, toggleMute } = useNotificationSound();
 
-  useEffect(() => {
-    fetchUserAndReports();
-  }, []);
+  // Check for new reports - stable reference
+  const checkForNewReports = useCallback(
+    (newReports, userDepartment) => {
+      if (! userDepartment) return;
 
-  const fetchUserAndReports = async () => {
-    try {
-      setLoading(true);
+      const currentReportIds = new Set(newReports.map((r) => r._id));
+      const previousIds = previousReportIdsRef.current;
 
-      // Fetch user info
-      const userResponse = await fetch(`${API_URL}/userData`, {
-        credentials: "include",
+      const newlyAddedReports = newReports.filter((report) => {
+        const departments = Array.isArray(report.referTo)
+          ? report. referTo
+          :  [report.referTo];
+        const isForDepartment = departments. includes(userDepartment);
+        const isNew = !previousIds. has(report._id);
+
+        return isForDepartment && isNew && previousIds.size > 0;
       });
 
-      if (! userResponse.ok) {
-        const errorData = await userResponse.json();
-        throw new Error(errorData.message || "Failed to fetch user info");
+      if (newlyAddedReports.length > 0) {
+        playNotificationSound();
+
+        const newNotifications = newlyAddedReports. map((report) => ({
+          id: `${report._id}-${Date.now()}`,
+          report,
+          timestamp: new Date(),
+        }));
+
+        setNotifications((prev) => [...newNotifications, ...prev]);
+
+        setNewReportIds((prev) => {
+          const updated = new Set(prev);
+          newlyAddedReports. forEach((r) => updated.add(r._id));
+          return updated;
+        });
+
+        // Auto-dismiss after 5 seconds
+        newNotifications.forEach((notification) => {
+          setTimeout(() => {
+            setNotifications((prev) =>
+              prev.filter((n) => n.id !== notification.id)
+            );
+          }, 5000);
+        });
+
+        // Clear highlighting after 30 seconds
+        setTimeout(() => {
+          setNewReportIds((prev) => {
+            const updated = new Set(prev);
+            newlyAddedReports.forEach((r) => updated.delete(r._id));
+            return updated;
+          });
+        }, 30000);
       }
 
-      const userData = await userResponse.json();
-      console.log("✅ User data received:", userData);
-      setUser(userData.user);
+      previousReportIdsRef.current = currentReportIds;
+    },
+    [playNotificationSound]
+  );
 
-      setError(null);
-    } catch (err) {
-      console.error("💥 Error in fetchUser", err);
-      setError(err.message || "Failed to load data. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    // Fetch immediately on mount
-    fetchReports();
-
-    // Set up interval to fetch every 1 minute
-    const intervalId = setInterval(() => {
-      fetchReports(true); // Pass true for background refresh
-    }, 60000);
-
-    // Cleanup
-    return () => {
-      clearInterval(intervalId);
-    };
+  const dismissNotification = useCallback((id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
 
-  const fetchReports = async (isBackgroundRefresh = false) => {
-    try {
-      if (isBackgroundRefresh) {
-        setIsRefreshing(true);
-      } else {
+  const dismissAllNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
+  const handleViewReportFromNotification = useCallback((report) => {
+    setSelectedReport(report);
+  }, []);
+
+  // Fetch user data
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
         setLoading(true);
-      }
+        const userResponse = await fetch(`${API_URL}/userData`, {
+          credentials: "include",
+        });
 
-      setError(null);
+        if (! userResponse.ok) {
+          const errorData = await userResponse.json();
+          throw new Error(errorData.message || "Failed to fetch user info");
+        }
 
-      const response = await fetch(`${API_URL}/reports`, {
-        credentials: "include",
-      });
-
-      if (!response.ok) throw new Error("Failed to fetch reports");
-
-      const data = await response.json();
-      console.log("📊 Reports fetched at", new Date().toLocaleTimeString());
-      console.log(data);
-
-      setReports(data);
-      setLastUpdated(new Date());
-    } catch (err) {
-      setError(err.message);
-      console.error("❌ Error fetching reports:", err);
-    } finally {
-      if (isBackgroundRefresh) {
-        setIsRefreshing(false);
-      } else {
+        const userData = await userResponse.json();
+        setUser(userData. user);
+        setError(null);
+      } catch (err) {
+        setError(err.message || "Failed to load data.  Please try again.");
+      } finally {
         setLoading(false);
       }
-    }
-  };
+    };
 
-  const handleSendToOE = async (reportId, departmentAction) => {
-    try {
-      const response = await fetch(
-        `${API_URL}/reports/${reportId}/department-action`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({ departmentAction }),
+    fetchUser();
+  }, []);
+
+  // Fetch reports - stable reference
+  const fetchReports = useCallback(
+    async (isBackgroundRefresh = false) => {
+      try {
+        if (isBackgroundRefresh) {
+          setIsRefreshing(true);
+        } else {
+          setLoading(true);
         }
-      );
 
-      if (!response.ok) {
+        setError(null);
+
+        const response = await fetch(`${API_URL}/reports`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch reports");
+
         const data = await response.json();
-        throw new Error(data.message || "Failed to send report to OE");
+
+        if (isBackgroundRefresh && user) {
+          checkForNewReports(data, user.department);
+        } else if (!isBackgroundRefresh) {
+          previousReportIdsRef.current = new Set(data.map((r) => r._id));
+        }
+
+        setReports(data);
+        setLastUpdated(new Date());
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        if (isBackgroundRefresh) {
+          setIsRefreshing(false);
+        } else {
+          setLoading(false);
+        }
       }
+    },
+    [user, checkForNewReports]
+  );
 
-      const data = await response.json();
-      console.log("✅ Report sent to OE:", data.report);
+  // Initial fetch and polling
+  useEffect(() => {
+    if (user) {
+      fetchReports();
 
-      // Update reports list
-      setReports(reports.map((r) => (r._id === reportId ?  data.report : r)));
+      const intervalId = setInterval(() => {
+        fetchReports(true);
+      }, 30000);
 
-      // Update selected report
-      if (selectedReport && selectedReport._id === reportId) {
-        setSelectedReport(data.report);
-      }
-
-      alert("Report successfully sent to OE Department for verification!");
-    } catch (err) {
-      console.error("❌ Error sending report to OE:", err);
-      alert(`Failed to send report:  ${err.message}`);
+      return () => clearInterval(intervalId);
     }
-  };
+  }, [user, fetchReports]);
 
-  // Filter reports by user's department - Updated to handle array referTo
+  const handleSendToOE = useCallback(
+    async (reportId, departmentAction) => {
+      try {
+        const response = await fetch(
+          `${API_URL}/reports/${reportId}/department-action`,
+          {
+            method: "PUT",
+            headers:  { "Content-Type":  "application/json" },
+            credentials: "include",
+            body: JSON. stringify({ departmentAction }),
+          }
+        );
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || "Failed to send report to OE");
+        }
+
+        const data = await response.json();
+
+        setReports((prev) =>
+          prev.map((r) => (r._id === reportId ? data. report : r))
+        );
+
+        if (selectedReport && selectedReport._id === reportId) {
+          setSelectedReport(data.report);
+        }
+
+        alert("Report successfully sent to OE Department for verification!");
+      } catch (err) {
+        alert(`Failed to send report:  ${err.message}`);
+      }
+    },
+    [selectedReport]
+  );
+
   const departmentReports = useMemo(() => {
     if (!user) return [];
 
     return reports.filter((r) => {
-      // Handle both array and string for referTo
       const departments = Array.isArray(r.referTo) ? r.referTo : [r.referTo];
-      
-      // Check if user's department is in the referTo array
-      const matchesDepartment = departments.includes(user.department);
+      const matchesDepartment = departments.includes(user. department);
 
-      // Filter by search term - include departments in search
       const departmentsStr = departments.join(" ");
       const matchesSearch =
-        r.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        r.serialNo.toLowerCase().includes(searchTerm. toLowerCase()) ||
         r.apparatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         departmentsStr.toLowerCase().includes(searchTerm.toLowerCase());
 
-      // Filter by status
-      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
+      const matchesStatus = statusFilter === "all" || r. status === statusFilter;
 
       return matchesDepartment && matchesSearch && matchesStatus;
     });
   }, [reports, searchTerm, statusFilter, user]);
 
-  const handleAddRemark = async (reportId, text) => {
-    try {
-      const response = await fetch(`${API_URL}/reports/${reportId}/remarks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body:  JSON.stringify({ text }),
-      });
+  const handleAddRemark = useCallback(
+    async (reportId, text) => {
+      try {
+        const response = await fetch(`${API_URL}/reports/${reportId}/remarks`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ text }),
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.message || "Failed to add remark");
+        }
+
         const data = await response.json();
-        throw new Error(data.message || "Failed to add remark");
+
+        setReports((prev) =>
+          prev.map((r) => (r._id === reportId ? data.report :  r))
+        );
+
+        if (selectedReport && selectedReport._id === reportId) {
+          setSelectedReport(data.report);
+        }
+      } catch (err) {
+        alert(err.message);
       }
+    },
+    [selectedReport]
+  );
 
-      const data = await response.json();
+  const handleLogout = useCallback(() => {
+    logout(navigate);
+  }, [navigate]);
 
-      setReports(reports.map((r) => (r._id === reportId ? data.report :  r)));
-
-      if (selectedReport && selectedReport._id === reportId) {
-        setSelectedReport(data.report);
-      }
-    } catch (err) {
-      console.error("Error adding remark:", err);
-      alert(err.message);
-    }
-  };
-
-  const handleLogout = async () => {
-    try {
-      logout(navigate);
-    } catch (err) {
-      console.error("Error logging out:", err);
-      alert("Failed to logout.Please try again.");
-    }
-  };
-
-  const handleManualRefresh = () => {
+  const handleManualRefresh = useCallback(() => {
     fetchReports(true);
-  };
+  }, [fetchReports]);
 
   if (loading) {
     return (
@@ -724,10 +1067,12 @@ export default function DepartmentDashboard() {
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-stone-600 font-light mb-4">Please log in to continue</p>
+          <p className="text-stone-600 font-light mb-4">
+            Please log in to continue
+          </p>
           <button
             onClick={() => navigate("/login")}
-            className="px-6 py-2 bg-stone-900 text-white font-light text-sm rounded-sm hover:bg-stone-800 transition-colors"
+            className="px-6 py-2 bg-stone-900 text-white font-light text-sm hover:bg-stone-800 transition-colors"
           >
             Go to Login
           </button>
@@ -738,6 +1083,14 @@ export default function DepartmentDashboard() {
 
   return (
     <div className="min-h-screen bg-stone-100">
+      {/* Notification Toasts */}
+      <NotificationToast
+        notifications={notifications}
+        onDismiss={dismissNotification}
+        onDismissAll={dismissAllNotifications}
+        onViewReport={handleViewReportFromNotification}
+      />
+
       {/* Header */}
       <div className="bg-stone-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
@@ -753,26 +1106,35 @@ export default function DepartmentDashboard() {
                 Department Dashboard
                 {lastUpdated && (
                   <span className="ml-2 text-stone-500">
-                    • Last updated: {lastUpdated.toLocaleTimeString()}
+                    • Updated: {lastUpdated.toLocaleTimeString()}
                   </span>
                 )}
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <NotificationBell
+                count={notifications.length}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+              />
+
               <button
                 onClick={handleManualRefresh}
                 disabled={isRefreshing}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 transition-all duration-200 border border-stone-700 text-sm font-light tracking-wide rounded-sm disabled:opacity-50"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 transition-all duration-200 border border-stone-700 text-sm font-light tracking-wide disabled:opacity-50"
               >
-                <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
+                <RefreshCw
+                  className={`w-4 h-4 ${isRefreshing ? "animate-spin" :  ""}`}
+                />
                 <span className="hidden sm:inline">REFRESH</span>
               </button>
               <button
                 onClick={handleLogout}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-transparent hover:bg-stone-800 transition-all duration-200 border border-stone-700 text-sm font-light tracking-wide rounded-sm text-stone-300 hover:text-white"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-transparent hover:bg-stone-800 transition-all duration-200 border border-stone-700 text-sm font-light tracking-wide text-stone-300 hover:text-white"
               >
                 <LogOut className="w-4 h-4" />
-                <span className="hidden sm:inline">LOGOUT</span>
+                <span className="hidden sm: inline">LOGOUT</span>
               </button>
             </div>
           </div>
@@ -781,7 +1143,7 @@ export default function DepartmentDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-4 mb-6 flex items-start gap-3 rounded-sm">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 mb-6 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <p className="font-light text-sm">{error}</p>
           </div>
@@ -790,24 +1152,27 @@ export default function DepartmentDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {[
-            { label: "Total", value: departmentReports.length, color: "stone" },
+            { label: "Total", value: departmentReports.length },
             {
               label: "Pending",
-              value: departmentReports.filter((r) => r.status === "Pending").length,
-              color: "amber",
+              value: departmentReports.filter((r) => r.status === "Pending")
+                .length,
             },
             {
               label:  "Under Review",
-              value: departmentReports.filter((r) => r.status === "Under Review").length,
-              color:  "blue",
+              value: departmentReports.filter((r) => r.status === "Under Review")
+                .length,
             },
             {
               label: "Closed",
-              value:  departmentReports.filter((r) => r.status === "Closed").length,
-              color: "emerald",
+              value:  departmentReports. filter((r) => r.status === "Closed")
+                .length,
             },
-          ].map((stat, idx) => (
-            <div key={idx} className="bg-white border border-stone-200 p-5 rounded-sm">
+          ]. map((stat, idx) => (
+            <div
+              key={idx}
+              className="bg-white border border-stone-200 p-5"
+            >
               <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
                 {stat.label}
               </p>
@@ -824,8 +1189,8 @@ export default function DepartmentDashboard() {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by serial no, apparatus, description, or department..."
-              className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus:border-stone-400 focus:outline-none transition-colors font-light rounded-sm"
+              placeholder="Search by serial no, apparatus, description..."
+              className="w-full pl-11 pr-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus:border-stone-400 focus:outline-none transition-colors font-light"
             />
           </div>
           <div className="relative">
@@ -833,7 +1198,7 @@ export default function DepartmentDashboard() {
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full sm:w-48 pl-11 pr-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm font-light focus:border-stone-400 focus:outline-none transition-colors appearance-none rounded-sm cursor-pointer"
+              className="w-full sm:w-48 pl-11 pr-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm font-light focus:border-stone-400 focus:outline-none transition-colors appearance-none cursor-pointer"
             >
               <option value="all">All Status</option>
               <option value="Pending">Pending</option>
@@ -860,8 +1225,8 @@ export default function DepartmentDashboard() {
 
         {/* Reports List */}
         <div className="space-y-4">
-          {departmentReports.length === 0 ? (
-            <div className="bg-white rounded-sm border border-stone-200 p-12 text-center">
+          {departmentReports.length === 0 ?  (
+            <div className="bg-white border border-stone-200 p-12 text-center">
               <FileText className="w-12 h-12 text-stone-300 mx-auto mb-4" />
               <p className="text-stone-500 font-light mb-2">No reports found</p>
               <p className="text-stone-400 text-sm font-light">
@@ -876,6 +1241,7 @@ export default function DepartmentDashboard() {
                 key={report._id}
                 report={report}
                 userDepartment={user.department}
+                isNew={newReportIds.has(report._id)}
                 onClick={() => setSelectedReport(report)}
               />
             ))

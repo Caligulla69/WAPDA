@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import {
   AlertCircle,
   CheckCircle,
@@ -12,7 +12,6 @@ import {
   ChevronDown,
   X,
   Search,
-  Filter,
   MessageSquare,
   Send,
   ArrowRight,
@@ -20,10 +19,10 @@ import {
   LogOut,
   ArrowLeft,
   Building2,
-  Calendar,
-  Zap,
   Check,
-  RotateCcw,
+  Bell,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import API_URL from "../../utils/api";
 import { logout } from "../../utils/logout";
@@ -46,10 +45,270 @@ const DEPARTMENTS = [
 ];
 
 // ============================================
-// Reusable Components (Memoized)
+// Notification Sound Hook - Stable, no re-renders
 // ============================================
-const StatusBadge = React.memo(({ status }) => {
-  const getStatusConfig = (status) => {
+const useNotificationSound = () => {
+  const audioContextRef = useRef(null);
+  const isMutedRef = useRef(false);
+  const [isMuted, setIsMutedState] = useState(false);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("oeNotificationMuted");
+    const muted = saved === "true";
+    isMutedRef.current = muted;
+    setIsMutedState(muted);
+  }, []);
+
+  const playNotificationSound = useCallback(() => {
+    if (isMutedRef.current) return;
+
+    try {
+      if (!audioContextRef. current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+
+      const audioContext = audioContextRef. current;
+
+      if (audioContext.state === "suspended") {
+        audioContext.resume();
+      }
+
+      const now = audioContext.currentTime;
+
+      // First bell tone
+      const osc1 = audioContext. createOscillator();
+      const gain1 = audioContext. createGain();
+      osc1.connect(gain1);
+      gain1.connect(audioContext. destination);
+      osc1.frequency. setValueAtTime(880, now);
+      osc1.type = "sine";
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain. exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc1.start(now);
+      osc1.stop(now + 0.4);
+
+      // Second bell tone
+      setTimeout(() => {
+        if (audioContextRef.current) {
+          const ctx = audioContextRef. current;
+          const osc2 = ctx.createOscillator();
+          const gain2 = ctx.createGain();
+          osc2.connect(gain2);
+          gain2.connect(ctx. destination);
+          osc2.frequency. setValueAtTime(1100, ctx.currentTime);
+          osc2.type = "sine";
+          gain2.gain.setValueAtTime(0.15, ctx.currentTime);
+          gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+          osc2.start(ctx.currentTime);
+          osc2.stop(ctx.currentTime + 0.3);
+        }
+      }, 120);
+    } catch (error) {
+      console.log("Audio playback failed:", error);
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    const newValue = !isMutedRef.current;
+    isMutedRef. current = newValue;
+    localStorage.setItem("oeNotificationMuted", String(newValue));
+    setIsMutedState(newValue);
+  }, []);
+
+  return { playNotificationSound, isMuted, toggleMute };
+};
+
+// ============================================
+// Notification Toast Component
+// ============================================
+const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, onViewReport }) => {
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm w-full pointer-events-none">
+      {notifications. slice(0, 3).map((notification, index) => (
+        <div
+          key={notification.id}
+          className="bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden pointer-events-auto"
+          style={{
+            animation: "slideIn 0.3s ease-out forwards",
+            animationDelay: `${index * 50}ms`,
+          }}
+        >
+          <div className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 bg-stone-100 border border-stone-200 flex items-center justify-center flex-shrink-0">
+                <Bell className="w-4 h-4 text-stone-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-sm font-light text-stone-800">
+                      New Report for Verification
+                    </p>
+                    <p className="text-xs text-stone-500 font-light mt-0.5">
+                      {notification.report.serialNo}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => onDismiss(notification.id)}
+                    className="text-stone-400 hover: text-stone-600 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-stone-500 font-light mt-2 line-clamp-1">
+                  {notification.report.apparatus}
+                </p>
+                <div className="flex items-center gap-2 mt-3">
+                  <button
+                    onClick={() => {
+                      onViewReport(notification.report);
+                      onDismiss(notification.id);
+                    }}
+                    className="px-3 py-1.5 bg-stone-900 text-white text-xs font-light hover:bg-stone-800 transition-colors"
+                  >
+                    VIEW
+                  </button>
+                  <button
+                    onClick={() => onDismiss(notification.id)}
+                    className="px-3 py-1.5 text-stone-500 text-xs font-light hover:bg-stone-100 transition-colors"
+                  >
+                    DISMISS
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="h-0.5 bg-stone-100">
+            <div
+              className="h-full bg-stone-400"
+              style={{
+                animation: "shrink 5s linear forwards",
+              }}
+            />
+          </div>
+        </div>
+      ))}
+
+      {notifications.length > 3 && (
+        <div className="bg-stone-800 text-white text-xs text-center py-2 px-4 rounded-lg pointer-events-auto">
+          +{notifications.length - 3} more notifications
+        </div>
+      )}
+
+      {notifications.length > 1 && (
+        <button
+          onClick={onDismissAll}
+          className="w-full py-2 text-xs text-stone-500 hover:text-stone-700 transition-colors pointer-events-auto"
+        >
+          Dismiss all
+        </button>
+      )}
+
+      <style>{`
+        @keyframes slideIn {
+          from {
+            opacity: 0;
+            transform: translateX(100%);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes shrink {
+          from { width: 100%; }
+          to { width: 0%; }
+        }
+      `}</style>
+    </div>
+  );
+});
+
+// ============================================
+// Notification Bell Component
+// ============================================
+const NotificationBell = React. memo(({ count, isMuted, onToggleMute }) => {
+  const [isShaking, setIsShaking] = useState(false);
+  const prevCountRef = useRef(count);
+
+  useEffect(() => {
+    if (count > prevCountRef.current) {
+      setIsShaking(true);
+      const timer = setTimeout(() => setIsShaking(false), 600);
+      prevCountRef.current = count;
+      return () => clearTimeout(timer);
+    }
+    prevCountRef.current = count;
+  }, [count]);
+
+  const handleMuteClick = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleMute();
+    },
+    [onToggleMute]
+  );
+
+  return (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={handleMuteClick}
+        className="p-2 hover:bg-stone-800 transition-colors border border-transparent hover:border-stone-700"
+        title={isMuted ? "Unmute notifications" : "Mute notifications"}
+      >
+        {isMuted ? (
+          <VolumeX className="w-4 h-4 text-stone-500" />
+        ) : (
+          <Volume2 className="w-4 h-4 text-stone-400" />
+        )}
+      </button>
+
+      <div
+        className={`relative p-2.5 border border-stone-700 ${
+          count > 0 ?  "bg-stone-800" : "bg-transparent"
+        }`}
+        style={{
+          animation: isShaking ? "bellShake 0.6s ease-in-out" : "none",
+        }}
+      >
+        <Bell className={`w-4 h-4 ${count > 0 ?  "text-white" : "text-stone-400"}`} />
+
+        {count > 0 && (
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-amber-500 text-white text-[10px] font-medium flex items-center justify-center px-1">
+            {count > 99 ? "99+" : count}
+          </span>
+        )}
+
+        <style>{`
+          @keyframes bellShake {
+            0%, 100% { transform: rotate(0deg); }
+            15% { transform: rotate(-12deg); }
+            30% { transform:  rotate(12deg); }
+            45% { transform: rotate(-8deg); }
+            60% { transform:  rotate(8deg); }
+            75% { transform: rotate(-4deg); }
+            90% { transform: rotate(4deg); }
+          }
+        `}</style>
+      </div>
+    </div>
+  );
+});
+
+// ============================================
+// Report Card Component (Memoized)
+// ============================================
+const ReportCard = React.memo(({ report, onClick, isNew }) => {
+  const departments = useMemo(
+    () => (Array.isArray(report.referTo) ? report.referTo : [report. referTo]),
+    [report.referTo]
+  );
+
+  const statusConfig = useMemo(() => {
     const configs = {
       Closed: {
         color: "bg-emerald-50 text-emerald-800 border-emerald-200",
@@ -78,80 +337,28 @@ const StatusBadge = React.memo(({ status }) => {
       },
     };
     return (
-      configs[status] || {
-        color: "bg-blue-50 text-blue-800 border-blue-200",
-        icon: FileText,
-        label: status?.toUpperCase() || "OPEN",
-      }
-    );
-  };
-
-  const config = getStatusConfig(status);
-  const StatusIcon = config.icon;
-
-  return (
-    <span
-      className={`px-3 py-1.5 text-xs font-light border ${config.color} flex items-center gap-1.5`}
-    >
-      <StatusIcon className="w-3.5 h-3.5" />
-      {config.label}
-    </span>
-  );
-});
-
-// ============================================
-// Report Card Component (Memoized)
-// ============================================
-const ReportCard = React.memo(({ report, onClick }) => {
-  const departments = useMemo(
-    () => (Array.isArray(report.referTo) ? report.referTo : [report.referTo]),
-    [report.referTo]
-  );
-
-  const statusConfig = useMemo(() => {
-    const configs = {
-      Closed: {
-        color: "bg-emerald-50 text-emerald-800 border-emerald-200",
-        icon: CheckCircle,
-        label: "CLOSED",
-      },
-      Rejected: {
-        color: "bg-rose-50 text-rose-800 border-rose-200",
-        icon: XCircle,
-        label:  "REJECTED",
-      },
-      Pending: {
-        color: "bg-amber-50 text-amber-800 border-amber-200",
-        icon:  AlertCircle,
-        label: "PENDING",
-      },
-      "Needs Revision": {
-        color: "bg-orange-50 text-orange-800 border-orange-200",
-        icon: RefreshCw,
-        label:  "NEEDS REVISION",
-      },
-      "Under Review":  {
-        color:  "bg-violet-50 text-violet-800 border-violet-200",
-        icon: Eye,
-        label: "UNDER REVIEW",
-      },
-    };
-    return (
       configs[report.status] || {
-        color: "bg-blue-50 text-blue-800 border-blue-200",
+        color:  "bg-blue-50 text-blue-800 border-blue-200",
         icon: FileText,
-        label: report.status?.toUpperCase() || "OPEN",
+        label: report.status?. toUpperCase() || "OPEN",
       }
     );
   }, [report.status]);
 
-  const StatusIcon = statusConfig.icon;
+  const StatusIcon = statusConfig. icon;
 
   return (
     <div
       onClick={onClick}
-      className="bg-white border border-stone-200 hover:border-stone-300 transition-all duration-300 cursor-pointer group"
+      className={`bg-white border hover:border-stone-300 transition-all duration-300 cursor-pointer group overflow-hidden ${
+        isNew ?  "border-amber-300 shadow-sm" : "border-stone-200"
+      }`}
     >
+      {isNew && (
+        <div className="bg-amber-500 text-white text-xs font-light tracking-wider px-3 py-1 text-center">
+          NEW REPORT FOR VERIFICATION
+        </div>
+      )}
       <div className="p-6">
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center gap-3">
@@ -163,11 +370,8 @@ const ReportCard = React.memo(({ report, onClick }) => {
                 {report.serialNo}
               </h3>
               <div className="flex flex-wrap gap-1 mt-1">
-                {departments.slice(0, 2).map((dept, idx) => (
-                  <span
-                    key={idx}
-                    className="text-xs text-stone-500 font-light"
-                  >
+                {departments. slice(0, 2).map((dept, idx) => (
+                  <span key={idx} className="text-xs text-stone-500 font-light">
                     {dept}
                     {idx < Math.min(departments.length, 2) - 1 && ", "}
                   </span>
@@ -183,9 +387,9 @@ const ReportCard = React.memo(({ report, onClick }) => {
 
           <div className="flex items-center gap-3">
             <span
-              className={`px-3 py-1.5 text-xs font-light border ${statusConfig.color} flex items-center gap-1.5`}
+              className={`px-3 py-1.5 text-xs font-light border ${statusConfig.color} flex items-center gap-1. 5`}
             >
-              <StatusIcon className="w-3.5 h-3.5" />
+              <StatusIcon className="w-3. 5 h-3.5" />
               {statusConfig.label}
             </span>
             <ChevronRight className="w-5 h-5 text-stone-400 group-hover:text-stone-800 group-hover:translate-x-1 transition-all" />
@@ -225,10 +429,10 @@ const ReportCard = React.memo(({ report, onClick }) => {
             <User className="w-4 h-4" />
             <span>{report.notifiedBy}</span>
           </div>
-          {report.remarks?.length > 0 && (
+          {report.remarks?. length > 0 && (
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              <span>{report.remarks.length}</span>
+              <span>{report.remarks. length}</span>
             </div>
           )}
         </div>
@@ -252,7 +456,7 @@ const RemarksSection = React.memo(({ remarks = [], onAddRemark, isSubmitting }) 
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
+        e. preventDefault();
         handleSubmit();
       }
     },
@@ -270,10 +474,10 @@ const RemarksSection = React.memo(({ remarks = [], onAddRemark, isSubmitting }) 
         ) : (
           remarks.map((remark, idx) => {
             const isOEFeedback =
-              remark.text?.includes("rejected") ||
+              remark. text?. includes("rejected") ||
               remark.text?.includes("Rejected") ||
-              remark.text?.includes("OE");
-            const isDepartmentAction = remark.text?.includes("Department action");
+              remark.text?. includes("OE");
+            const isDepartmentAction = remark.text?. includes("Department action");
 
             return (
               <div
@@ -291,7 +495,7 @@ const RemarksSection = React.memo(({ remarks = [], onAddRemark, isSubmitting }) 
                     className={`w-4 h-4 ${
                       isOEFeedback
                         ? "text-orange-600"
-                        : isDepartmentAction
+                        :  isDepartmentAction
                         ? "text-blue-600"
                         : "text-stone-500"
                     }`}
@@ -364,9 +568,9 @@ const ActionModal = React.memo(
     useEffect(() => {
       if (isOpen && report) {
         const depts = Array.isArray(report.referTo)
-          ? [...report.referTo]
-          : [report.referTo];
-        setSelectedDepartments(depts.filter(Boolean));
+          ? [... report.referTo]
+          : [report. referTo];
+        setSelectedDepartments(depts. filter(Boolean));
         setRemark("");
         setRevisionReason("");
       }
@@ -424,7 +628,7 @@ const ActionModal = React.memo(
                 <div className="bg-orange-50 border border-orange-200 p-4 mb-4">
                   <p className="text-sm text-orange-800 font-light">
                     This report will be returned to the originating department(s)
-                    for revision. Please specify what needs to be corrected.
+                    for revision.  Please specify what needs to be corrected.
                   </p>
                 </div>
                 <div>
@@ -433,7 +637,7 @@ const ActionModal = React.memo(
                   </label>
                   <textarea
                     value={revisionReason}
-                    onChange={(e) => setRevisionReason(e.target.value)}
+                    onChange={(e) => setRevisionReason(e.target. value)}
                     placeholder="Describe what needs to be revised..."
                     rows="4"
                     className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-orange-500 focus: outline-none transition-colors resize-none"
@@ -446,7 +650,7 @@ const ActionModal = React.memo(
               <>
                 <div className="bg-blue-50 border border-blue-200 p-4">
                   <p className="text-sm text-blue-800 font-light">
-                    Select the department(s) this report should be referred to.
+                    Select the department(s) this report should be referred to. 
                     All previous remarks and actions will be preserved.
                   </p>
                 </div>
@@ -460,12 +664,12 @@ const ActionModal = React.memo(
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex flex-wrap gap-1.5 flex-1">
-                        {selectedDepartments.length === 0 ?  (
+                        {selectedDepartments. length === 0 ?  (
                           <span className="text-stone-400">
                             Choose department(s)...
                           </span>
                         ) : (
-                          selectedDepartments.map((dept) => (
+                          selectedDepartments. map((dept) => (
                             <span
                               key={dept}
                               className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-100 text-stone-700 text-xs"
@@ -473,7 +677,7 @@ const ActionModal = React.memo(
                               {dept}
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation();
+                                  e. stopPropagation();
                                   toggleDept(dept);
                                 }}
                                 className="hover:text-stone-900"
@@ -503,10 +707,10 @@ const ActionModal = React.memo(
                           <div
                             key={dept}
                             onClick={() => toggleDept(dept)}
-                            className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
+                            className={`flex items-center gap-3 px-4 py-2. 5 cursor-pointer transition-colors ${
                               selectedDepartments.includes(dept)
                                 ? "bg-stone-100 text-stone-900"
-                                :  "hover:bg-stone-50 text-stone-700"
+                                : "hover:bg-stone-50 text-stone-700"
                             }`}
                           >
                             <div
@@ -537,7 +741,7 @@ const ActionModal = React.memo(
                 </label>
                 <textarea
                   value={remark}
-                  onChange={(e) => setRemark(e.target.value)}
+                  onChange={(e) => setRemark(e.target. value)}
                   placeholder="Add a comment about this action..."
                   rows="3"
                   className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-stone-800 focus: outline-none transition-colors resize-none"
@@ -558,7 +762,7 @@ const ActionModal = React.memo(
                 disabled={isProcessing}
                 className="flex-1 px-6 py-3 bg-stone-900 hover:bg-stone-800 text-white font-light text-sm tracking-wide transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                {isProcessing ? (
+                {isProcessing ?  (
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
@@ -580,7 +784,7 @@ const ActionModal = React.memo(
 // ============================================
 const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [actionModal, setActionModal] = useState({ open: false, action: null });
+  const [actionModal, setActionModal] = useState({ open: false, action:  null });
   const [isProcessing, setIsProcessing] = useState(false);
 
   const departments = useMemo(
@@ -610,7 +814,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
         setIsProcessing(false);
       }
     },
-    [report._id, actionModal.action, onAction, onClose]
+    [report._id, actionModal. action, onAction, onClose]
   );
 
   return (
@@ -665,7 +869,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
                   REPORTED BY
                 </p>
-                <p className="text-stone-800 font-light">{report.notifiedBy}</p>
+                <p className="text-stone-800 font-light">{report. notifiedBy}</p>
               </div>
             </div>
 
@@ -678,7 +882,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 {departments.map((dept, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 text-stone-700 text-sm font-light"
+                    className="inline-flex items-center gap-1. 5 px-3 py-1. 5 bg-stone-100 text-stone-700 text-sm font-light"
                   >
                     <Building2 className="w-3.5 h-3.5" />
                     {dept}
@@ -692,7 +896,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
               <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
                 APPARATUS AFFECTED
               </label>
-              <p className="text-stone-800 font-light">{report.apparatus}</p>
+              <p className="text-stone-800 font-light">{report. apparatus}</p>
             </div>
 
             {/* Description */}
@@ -701,7 +905,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 DESCRIPTION
               </label>
               <p className="text-stone-800 font-light leading-relaxed whitespace-pre-wrap">
-                {report.description}
+                {report. description}
               </p>
             </div>
 
@@ -736,14 +940,14 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                   DEPARTMENT ACTION
                 </label>
                 <p className="text-stone-800 font-light leading-relaxed whitespace-pre-wrap">
-                  {report.departmentAction}
+                  {report. departmentAction}
                 </p>
               </div>
             )}
 
             {/* Remarks */}
             <RemarksSection
-              remarks={report.remarks || []}
+              remarks={report. remarks || []}
               onAddRemark={handleAddRemark}
               isSubmitting={isSubmitting}
             />
@@ -770,7 +974,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 </button>
               </div>
               <button
-                onClick={() => setActionModal({ open:  true, action: "refer" })}
+                onClick={() => setActionModal({ open: true, action:  "refer" })}
                 className="w-full px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white font-light text-sm tracking-wide transition-colors flex items-center justify-center gap-2"
               >
                 <Send className="w-4 h-4" />
@@ -783,7 +987,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
 
       {/* Action Modal */}
       <ActionModal
-        isOpen={actionModal.open}
+        isOpen={actionModal. open}
         onClose={() => setActionModal({ open: false, action: null })}
         action={actionModal.action}
         report={report}
@@ -804,66 +1008,148 @@ export default function OEDepartmentDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+
+  // Notification states
+  const [notifications, setNotifications] = useState([]);
+  const [newReportIds, setNewReportIds] = useState(new Set());
+  const previousReportIdsRef = useRef(new Set());
+
   const navigate = useNavigate();
+  const { playNotificationSound, isMuted, toggleMute } = useNotificationSound();
 
-  // Fetch only "Under Review" reports
-  const fetchReports = useCallback(async (isRefresh = false) => {
-    try {
-      if (isRefresh) {
-        setRefreshing(true);
-      } else {
-        setLoading(true);
-      }
+  // Check for new reports
+  const checkForNewReports = useCallback(
+    (newReports) => {
+      const currentReportIds = new Set(newReports.map((r) => r._id));
+      const previousIds = previousReportIdsRef.current;
 
-      const response = await fetch(`${API_URL}/reports/oe/pending`, {
-        credentials: "include",
+      const newlyAddedReports = newReports.filter((report) => {
+        const isNew = !previousIds.has(report._id);
+        return isNew && previousIds.size > 0;
       });
 
-      if (!response.ok) throw new Error("Failed to fetch reports");
+      if (newlyAddedReports.length > 0) {
+        playNotificationSound();
 
-      const data = await response.json();
+        const newNotifications = newlyAddedReports.map((report) => ({
+          id: `${report._id}-${Date.now()}`,
+          report,
+          timestamp: new Date(),
+        }));
 
-      // Filter only "Under Review" status reports at OE Department stage
-      const underReviewReports = (data.reports || []).filter(
-        (report) =>
-          report.status === "Under Review" &&
-          report.currentStage === "OE Department"
-      );
+        setNotifications((prev) => [...newNotifications, ...prev]);
 
-      setReports(underReviewReports);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching reports:", err);
-      setError("Failed to load reports. Please try again.");
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
+        setNewReportIds((prev) => {
+          const updated = new Set(prev);
+          newlyAddedReports. forEach((r) => updated.add(r._id));
+          return updated;
+        });
+
+        // Auto-dismiss after 5 seconds
+        newNotifications.forEach((notification) => {
+          setTimeout(() => {
+            setNotifications((prev) =>
+              prev.filter((n) => n.id !== notification.id)
+            );
+          }, 5000);
+        });
+
+        // Clear highlighting after 30 seconds
+        setTimeout(() => {
+          setNewReportIds((prev) => {
+            const updated = new Set(prev);
+            newlyAddedReports.forEach((r) => updated.delete(r._id));
+            return updated;
+          });
+        }, 30000);
+      }
+
+      previousReportIdsRef.current = currentReportIds;
+    },
+    [playNotificationSound]
+  );
+
+  const dismissNotification = useCallback((id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   }, []);
+
+  const dismissAllNotifications = useCallback(() => {
+    setNotifications([]);
+  }, []);
+
+  const handleViewReportFromNotification = useCallback((report) => {
+    setSelectedReport(report);
+  }, []);
+
+  // Fetch reports
+  const fetchReports = useCallback(
+    async (isRefresh = false) => {
+      try {
+        if (isRefresh) {
+          setRefreshing(true);
+        } else {
+          setLoading(true);
+        }
+
+        const response = await fetch(`${API_URL}/reports/oe/pending`, {
+          credentials: "include",
+        });
+
+        if (!response.ok) throw new Error("Failed to fetch reports");
+
+        const data = await response.json();
+
+        const underReviewReports = (data.reports || []).filter(
+          (report) =>
+            report.status === "Under Review" &&
+            report. currentStage === "OE Department"
+        );
+
+        // Check for new reports on background refresh
+        if (isRefresh) {
+          checkForNewReports(underReviewReports);
+        } else {
+          previousReportIdsRef.current = new Set(
+            underReviewReports.map((r) => r._id)
+          );
+        }
+
+        setReports(underReviewReports);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching reports:", err);
+        setError("Failed to load reports.  Please try again.");
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [checkForNewReports]
+  );
 
   useEffect(() => {
     fetchReports();
   }, [fetchReports]);
 
-  // Auto-refresh every 2 minutes
+  // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => fetchReports(true), 120000);
+    const interval = setInterval(() => fetchReports(true), 30000);
     return () => clearInterval(interval);
   }, [fetchReports]);
 
   // Filtered reports based on search
   const filteredReports = useMemo(() => {
-    if (!searchTerm.trim()) return reports;
+    if (!searchTerm. trim()) return reports;
 
-    const term = searchTerm.toLowerCase();
+    const term = searchTerm. toLowerCase();
     return reports.filter((r) => {
-      const depts = Array.isArray(r.referTo) ? r.referTo.join(" ") : r.referTo;
+      const depts = Array.isArray(r.referTo) ? r.referTo. join(" ") : r.referTo;
       return (
-        r.serialNo?.toLowerCase().includes(term) ||
+        r.serialNo?. toLowerCase().includes(term) ||
         r.apparatus?.toLowerCase().includes(term) ||
-        r.description?.toLowerCase().includes(term) ||
-        depts?.toLowerCase().includes(term) ||
-        r.notifiedBy?.toLowerCase().includes(term)
+        r. description?.toLowerCase().includes(term) ||
+        depts?. toLowerCase().includes(term) ||
+        r. notifiedBy?.toLowerCase().includes(term)
       );
     });
   }, [reports, searchTerm]);
@@ -883,9 +1169,9 @@ export default function OEDepartmentDashboard() {
       try {
         const response = await fetch(`${API_URL}/reports/${reportId}/oe-remark`, {
           method: "POST",
-          headers: { "Content-Type":  "application/json" },
+          headers:  { "Content-Type":  "application/json" },
           credentials: "include",
-          body: JSON.stringify({ text }),
+          body: JSON. stringify({ text }),
         });
 
         if (!response.ok) {
@@ -896,7 +1182,7 @@ export default function OEDepartmentDashboard() {
         const data = await response.json();
 
         setReports((prev) =>
-          prev.map((r) => (r._id === reportId ?  data.report : r))
+          prev.map((r) => (r._id === reportId ? data. report : r))
         );
 
         if (selectedReport && selectedReport._id === reportId) {
@@ -910,45 +1196,47 @@ export default function OEDepartmentDashboard() {
     [selectedReport]
   );
 
-  const handleAction = useCallback(async (reportId, actionType, options = {}) => {
-    try {
-      const backendAction = actionType === "revision" ? "reject" : actionType;
+  const handleAction = useCallback(
+    async (reportId, actionType, options = {}) => {
+      try {
+        const backendAction = actionType === "revision" ? "reject" : actionType;
 
-      const payload = {
-        action: backendAction,
-        department: options.departments || null,
-        remark: options.revisionReason || options.remark || null,
-      };
+        const payload = {
+          action: backendAction,
+          department: options.departments || null,
+          remark: options.revisionReason || options.remark || null,
+        };
 
-      const response = await fetch(`${API_URL}/reports/${reportId}/oe-action`, {
-        method: "PUT",
-        headers:  { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(payload),
-      });
+        const response = await fetch(`${API_URL}/reports/${reportId}/oe-action`, {
+          method: "PUT",
+          headers:  { "Content-Type":  "application/json" },
+          credentials:  "include",
+          body: JSON.stringify(payload),
+        });
 
-      const data = await response.json();
+        const data = await response. json();
 
-      if (! response.ok) {
-        throw new Error(data.message || "Failed to process action");
+        if (!response.ok) {
+          throw new Error(data.message || "Failed to process action");
+        }
+
+        setReports((prev) => prev.filter((r) => r._id !== reportId));
+
+        const messages = {
+          approve: "Report approved and sent to Resident Engineer",
+          revision:  "Report sent back for revision",
+          refer: "Report referred to selected department(s)",
+        };
+
+        alert(messages[actionType] || "Action completed successfully!");
+      } catch (err) {
+        console.error("Error processing action:", err);
+        alert(err.message || "Failed to process action");
+        throw err;
       }
-
-      // Remove from list after action
-      setReports((prev) => prev.filter((r) => r._id !== reportId));
-
-      const messages = {
-        approve: "Report approved and sent to Resident Engineer",
-        revision: "Report sent back for revision",
-        refer: "Report referred to selected department(s)",
-      };
-
-      alert(messages[actionType] || "Action completed successfully!");
-    } catch (err) {
-      console.error("Error processing action:", err);
-      alert(err.message || "Failed to process action");
-      throw err;
-    }
-  }, []);
+    },
+    []
+  );
 
   const handleLogout = useCallback(() => {
     logout(navigate);
@@ -967,6 +1255,14 @@ export default function OEDepartmentDashboard() {
 
   return (
     <div className="min-h-screen bg-stone-50">
+      {/* Notification Toasts */}
+      <NotificationToast
+        notifications={notifications}
+        onDismiss={dismissNotification}
+        onDismissAll={dismissAllNotifications}
+        onViewReport={handleViewReportFromNotification}
+      />
+
       {/* Header */}
       <div className="bg-stone-900 text-white p-8 border-b border-stone-800">
         <div className="max-w-7xl mx-auto">
@@ -980,6 +1276,13 @@ export default function OEDepartmentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              {/* Notification Bell */}
+              <NotificationBell
+                count={notifications.length}
+                isMuted={isMuted}
+                onToggleMute={toggleMute}
+              />
+
               <button
                 onClick={() => fetchReports(true)}
                 disabled={refreshing}
@@ -1030,7 +1333,7 @@ export default function OEDepartmentDashboard() {
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover: text-stone-600"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1048,10 +1351,10 @@ export default function OEDepartmentDashboard() {
           </div>
           <div className="bg-white border border-stone-200 p-6">
             <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
-              WITH DEPT. ACTION
+              WITH DEPT.  ACTION
             </p>
             <p className="text-3xl font-light text-stone-800">
-              {stats.withAction}
+              {stats. withAction}
             </p>
           </div>
           <div className="bg-white border border-stone-200 p-6">
@@ -1059,7 +1362,7 @@ export default function OEDepartmentDashboard() {
               AWAITING ACTION
             </p>
             <p className="text-3xl font-light text-stone-800">
-              {stats.pendingAction}
+              {stats. pendingAction}
             </p>
           </div>
         </div>
@@ -1072,7 +1375,7 @@ export default function OEDepartmentDashboard() {
 
         {/* Reports List */}
         <div className="space-y-4">
-          {filteredReports.length === 0 ?  (
+          {filteredReports.length === 0 ? (
             <div className="bg-white border border-stone-200 p-12 text-center">
               <AlertCircle className="w-12 h-12 text-stone-300 mx-auto mb-4" />
               <p className="text-stone-400 font-light">
@@ -1084,6 +1387,7 @@ export default function OEDepartmentDashboard() {
               <ReportCard
                 key={report._id}
                 report={report}
+                isNew={newReportIds.has(report._id)}
                 onClick={() => setSelectedReport(report)}
               />
             ))
