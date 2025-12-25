@@ -63,11 +63,11 @@ const useNotificationSound = () => {
     if (isMutedRef.current) return;
 
     try {
-      if (!audioContextRef. current) {
+      if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-      const audioContext = audioContextRef. current;
+      const audioContext = audioContextRef.current;
 
       if (audioContext.state === "suspended") {
         audioContext.resume();
@@ -76,26 +76,26 @@ const useNotificationSound = () => {
       const now = audioContext.currentTime;
 
       // First bell tone
-      const osc1 = audioContext. createOscillator();
-      const gain1 = audioContext. createGain();
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
       osc1.connect(gain1);
-      gain1.connect(audioContext. destination);
-      osc1.frequency. setValueAtTime(880, now);
+      gain1.connect(audioContext.destination);
+      osc1.frequency.setValueAtTime(880, now);
       osc1.type = "sine";
       gain1.gain.setValueAtTime(0.2, now);
-      gain1.gain. exponentialRampToValueAtTime(0.01, now + 0.4);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
       osc1.start(now);
       osc1.stop(now + 0.4);
 
       // Second bell tone
       setTimeout(() => {
         if (audioContextRef.current) {
-          const ctx = audioContextRef. current;
+          const ctx = audioContextRef.current;
           const osc2 = ctx.createOscillator();
           const gain2 = ctx.createGain();
           osc2.connect(gain2);
-          gain2.connect(ctx. destination);
-          osc2.frequency. setValueAtTime(1100, ctx.currentTime);
+          gain2.connect(ctx.destination);
+          osc2.frequency.setValueAtTime(1100, ctx.currentTime);
           osc2.type = "sine";
           gain2.gain.setValueAtTime(0.15, ctx.currentTime);
           gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
@@ -110,7 +110,7 @@ const useNotificationSound = () => {
 
   const toggleMute = useCallback(() => {
     const newValue = !isMutedRef.current;
-    isMutedRef. current = newValue;
+    isMutedRef.current = newValue;
     localStorage.setItem("oeNotificationMuted", String(newValue));
     setIsMutedState(newValue);
   }, []);
@@ -126,7 +126,7 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
 
   return (
     <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm w-full pointer-events-none">
-      {notifications. slice(0, 3).map((notification, index) => (
+      {notifications.slice(0, 3).map((notification, index) => (
         <div
           key={notification.id}
           className="bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden pointer-events-auto"
@@ -229,7 +229,7 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
 // ============================================
 // Notification Bell Component
 // ============================================
-const NotificationBell = React. memo(({ count, isMuted, onToggleMute }) => {
+const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
   const [isShaking, setIsShaking] = useState(false);
   const prevCountRef = useRef(count);
 
@@ -304,7 +304,7 @@ const NotificationBell = React. memo(({ count, isMuted, onToggleMute }) => {
 // ============================================
 const ReportCard = React.memo(({ report, onClick, isNew }) => {
   const departments = useMemo(
-    () => (Array.isArray(report.referTo) ? report.referTo : [report. referTo]),
+    () => (Array.isArray(report.referTo) ? report.referTo : [report.referTo]),
     [report.referTo]
   );
 
@@ -340,12 +340,12 @@ const ReportCard = React.memo(({ report, onClick, isNew }) => {
       configs[report.status] || {
         color:  "bg-blue-50 text-blue-800 border-blue-200",
         icon: FileText,
-        label: report.status?. toUpperCase() || "OPEN",
+        label: report.status?.toUpperCase() || "OPEN",
       }
     );
   }, [report.status]);
 
-  const StatusIcon = statusConfig. icon;
+  const StatusIcon = statusConfig.icon;
 
   return (
     <div
@@ -370,7 +370,7 @@ const ReportCard = React.memo(({ report, onClick, isNew }) => {
                 {report.serialNo}
               </h3>
               <div className="flex flex-wrap gap-1 mt-1">
-                {departments. slice(0, 2).map((dept, idx) => (
+                {departments.slice(0, 2).map((dept, idx) => (
                   <span key={idx} className="text-xs text-stone-500 font-light">
                     {dept}
                     {idx < Math.min(departments.length, 2) - 1 && ", "}
@@ -387,9 +387,9 @@ const ReportCard = React.memo(({ report, onClick, isNew }) => {
 
           <div className="flex items-center gap-3">
             <span
-              className={`px-3 py-1.5 text-xs font-light border ${statusConfig.color} flex items-center gap-1. 5`}
+              className={`px-3 py-1.5 text-xs font-light border ${statusConfig.color} flex items-center gap-1.5`}
             >
-              <StatusIcon className="w-3. 5 h-3.5" />
+              <StatusIcon className="w-3.5 h-3.5" />
               {statusConfig.label}
             </span>
             <ChevronRight className="w-5 h-5 text-stone-400 group-hover:text-stone-800 group-hover:translate-x-1 transition-all" />
@@ -429,10 +429,10 @@ const ReportCard = React.memo(({ report, onClick, isNew }) => {
             <User className="w-4 h-4" />
             <span>{report.notifiedBy}</span>
           </div>
-          {report.remarks?. length > 0 && (
+          {report.remarks?.length > 0 && (
             <div className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
-              <span>{report.remarks. length}</span>
+              <span>{report.remarks.length}</span>
             </div>
           )}
         </div>
@@ -456,7 +456,7 @@ const RemarksSection = React.memo(({ remarks = [], onAddRemark, isSubmitting }) 
   const handleKeyPress = useCallback(
     (e) => {
       if (e.key === "Enter" && !e.shiftKey) {
-        e. preventDefault();
+        e.preventDefault();
         handleSubmit();
       }
     },
@@ -474,10 +474,10 @@ const RemarksSection = React.memo(({ remarks = [], onAddRemark, isSubmitting }) 
         ) : (
           remarks.map((remark, idx) => {
             const isOEFeedback =
-              remark. text?. includes("rejected") ||
+              remark.text?.includes("rejected") ||
               remark.text?.includes("Rejected") ||
-              remark.text?. includes("OE");
-            const isDepartmentAction = remark.text?. includes("Department action");
+              remark.text?.includes("OE");
+            const isDepartmentAction = remark.text?.includes("Department action");
 
             return (
               <div
@@ -568,9 +568,9 @@ const ActionModal = React.memo(
     useEffect(() => {
       if (isOpen && report) {
         const depts = Array.isArray(report.referTo)
-          ? [... report.referTo]
-          : [report. referTo];
-        setSelectedDepartments(depts. filter(Boolean));
+          ? [...report.referTo]
+          : [report.referTo];
+        setSelectedDepartments(depts.filter(Boolean));
         setRemark("");
         setRevisionReason("");
       }
@@ -628,7 +628,7 @@ const ActionModal = React.memo(
                 <div className="bg-orange-50 border border-orange-200 p-4 mb-4">
                   <p className="text-sm text-orange-800 font-light">
                     This report will be returned to the originating department(s)
-                    for revision.  Please specify what needs to be corrected.
+                    for revision. Please specify what needs to be corrected.
                   </p>
                 </div>
                 <div>
@@ -637,7 +637,7 @@ const ActionModal = React.memo(
                   </label>
                   <textarea
                     value={revisionReason}
-                    onChange={(e) => setRevisionReason(e.target. value)}
+                    onChange={(e) => setRevisionReason(e.target.value)}
                     placeholder="Describe what needs to be revised..."
                     rows="4"
                     className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-orange-500 focus: outline-none transition-colors resize-none"
@@ -650,7 +650,7 @@ const ActionModal = React.memo(
               <>
                 <div className="bg-blue-50 border border-blue-200 p-4">
                   <p className="text-sm text-blue-800 font-light">
-                    Select the department(s) this report should be referred to. 
+                    Select the department(s) this report should be referred to.
                     All previous remarks and actions will be preserved.
                   </p>
                 </div>
@@ -664,12 +664,12 @@ const ActionModal = React.memo(
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex flex-wrap gap-1.5 flex-1">
-                        {selectedDepartments. length === 0 ?  (
+                        {selectedDepartments.length === 0 ?  (
                           <span className="text-stone-400">
                             Choose department(s)...
                           </span>
                         ) : (
-                          selectedDepartments. map((dept) => (
+                          selectedDepartments.map((dept) => (
                             <span
                               key={dept}
                               className="inline-flex items-center gap-1 px-2 py-0.5 bg-stone-100 text-stone-700 text-xs"
@@ -677,7 +677,7 @@ const ActionModal = React.memo(
                               {dept}
                               <button
                                 onClick={(e) => {
-                                  e. stopPropagation();
+                                  e.stopPropagation();
                                   toggleDept(dept);
                                 }}
                                 className="hover:text-stone-900"
@@ -707,7 +707,7 @@ const ActionModal = React.memo(
                           <div
                             key={dept}
                             onClick={() => toggleDept(dept)}
-                            className={`flex items-center gap-3 px-4 py-2. 5 cursor-pointer transition-colors ${
+                            className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer transition-colors ${
                               selectedDepartments.includes(dept)
                                 ? "bg-stone-100 text-stone-900"
                                 : "hover:bg-stone-50 text-stone-700"
@@ -741,7 +741,7 @@ const ActionModal = React.memo(
                 </label>
                 <textarea
                   value={remark}
-                  onChange={(e) => setRemark(e.target. value)}
+                  onChange={(e) => setRemark(e.target.value)}
                   placeholder="Add a comment about this action..."
                   rows="3"
                   className="w-full px-4 py-3 bg-white border border-stone-200 text-stone-800 placeholder-stone-400 font-light focus:border-stone-800 focus: outline-none transition-colors resize-none"
@@ -814,7 +814,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
         setIsProcessing(false);
       }
     },
-    [report._id, actionModal. action, onAction, onClose]
+    [report._id, actionModal.action, onAction, onClose]
   );
 
   return (
@@ -869,7 +869,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
                   REPORTED BY
                 </p>
-                <p className="text-stone-800 font-light">{report. notifiedBy}</p>
+                <p className="text-stone-800 font-light">{report.notifiedBy}</p>
               </div>
             </div>
 
@@ -882,7 +882,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 {departments.map((dept, idx) => (
                   <span
                     key={idx}
-                    className="inline-flex items-center gap-1. 5 px-3 py-1. 5 bg-stone-100 text-stone-700 text-sm font-light"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 text-stone-700 text-sm font-light"
                   >
                     <Building2 className="w-3.5 h-3.5" />
                     {dept}
@@ -896,7 +896,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
               <label className="block text-sm font-light text-stone-600 mb-3 tracking-wide">
                 APPARATUS AFFECTED
               </label>
-              <p className="text-stone-800 font-light">{report. apparatus}</p>
+              <p className="text-stone-800 font-light">{report.apparatus}</p>
             </div>
 
             {/* Description */}
@@ -905,7 +905,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                 DESCRIPTION
               </label>
               <p className="text-stone-800 font-light leading-relaxed whitespace-pre-wrap">
-                {report. description}
+                {report.description}
               </p>
             </div>
 
@@ -940,14 +940,14 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
                   DEPARTMENT ACTION
                 </label>
                 <p className="text-stone-800 font-light leading-relaxed whitespace-pre-wrap">
-                  {report. departmentAction}
+                  {report.departmentAction}
                 </p>
               </div>
             )}
 
             {/* Remarks */}
             <RemarksSection
-              remarks={report. remarks || []}
+              remarks={report.remarks || []}
               onAddRemark={handleAddRemark}
               isSubmitting={isSubmitting}
             />
@@ -987,7 +987,7 @@ const ReportDetail = React.memo(({ report, onClose, onAction, onAddRemark }) => 
 
       {/* Action Modal */}
       <ActionModal
-        isOpen={actionModal. open}
+        isOpen={actionModal.open}
         onClose={() => setActionModal({ open: false, action: null })}
         action={actionModal.action}
         report={report}
@@ -1041,7 +1041,7 @@ export default function OEDepartmentDashboard() {
 
         setNewReportIds((prev) => {
           const updated = new Set(prev);
-          newlyAddedReports. forEach((r) => updated.add(r._id));
+          newlyAddedReports.forEach((r) => updated.add(r._id));
           return updated;
         });
 
@@ -1102,7 +1102,7 @@ export default function OEDepartmentDashboard() {
         const underReviewReports = (data.reports || []).filter(
           (report) =>
             report.status === "Under Review" &&
-            report. currentStage === "OE Department"
+            report.currentStage === "OE Department"
         );
 
         // Check for new reports on background refresh
@@ -1118,7 +1118,7 @@ export default function OEDepartmentDashboard() {
         setError(null);
       } catch (err) {
         console.error("Error fetching reports:", err);
-        setError("Failed to load reports.  Please try again.");
+        setError("Failed to load reports. Please try again.");
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -1139,17 +1139,17 @@ export default function OEDepartmentDashboard() {
 
   // Filtered reports based on search
   const filteredReports = useMemo(() => {
-    if (!searchTerm. trim()) return reports;
+    if (!searchTerm.trim()) return reports;
 
-    const term = searchTerm. toLowerCase();
+    const term = searchTerm.toLowerCase();
     return reports.filter((r) => {
-      const depts = Array.isArray(r.referTo) ? r.referTo. join(" ") : r.referTo;
+      const depts = Array.isArray(r.referTo) ? r.referTo.join(" ") : r.referTo;
       return (
-        r.serialNo?. toLowerCase().includes(term) ||
+        r.serialNo?.toLowerCase().includes(term) ||
         r.apparatus?.toLowerCase().includes(term) ||
-        r. description?.toLowerCase().includes(term) ||
-        depts?. toLowerCase().includes(term) ||
-        r. notifiedBy?.toLowerCase().includes(term)
+        r.description?.toLowerCase().includes(term) ||
+        depts?.toLowerCase().includes(term) ||
+        r.notifiedBy?.toLowerCase().includes(term)
       );
     });
   }, [reports, searchTerm]);
@@ -1171,7 +1171,7 @@ export default function OEDepartmentDashboard() {
           method: "POST",
           headers:  { "Content-Type":  "application/json" },
           credentials: "include",
-          body: JSON. stringify({ text }),
+          body: JSON.stringify({ text }),
         });
 
         if (!response.ok) {
@@ -1182,7 +1182,7 @@ export default function OEDepartmentDashboard() {
         const data = await response.json();
 
         setReports((prev) =>
-          prev.map((r) => (r._id === reportId ? data. report : r))
+          prev.map((r) => (r._id === reportId ? data.report : r))
         );
 
         if (selectedReport && selectedReport._id === reportId) {
@@ -1214,7 +1214,7 @@ export default function OEDepartmentDashboard() {
           body: JSON.stringify(payload),
         });
 
-        const data = await response. json();
+        const data = await response.json();
 
         if (!response.ok) {
           throw new Error(data.message || "Failed to process action");
@@ -1351,10 +1351,10 @@ export default function OEDepartmentDashboard() {
           </div>
           <div className="bg-white border border-stone-200 p-6">
             <p className="text-xs text-stone-500 font-light tracking-wide mb-1">
-              WITH DEPT.  ACTION
+              WITH DEPT. ACTION
             </p>
             <p className="text-3xl font-light text-stone-800">
-              {stats. withAction}
+              {stats.withAction}
             </p>
           </div>
           <div className="bg-white border border-stone-200 p-6">
@@ -1362,7 +1362,7 @@ export default function OEDepartmentDashboard() {
               AWAITING ACTION
             </p>
             <p className="text-3xl font-light text-stone-800">
-              {stats. pendingAction}
+              {stats.pendingAction}
             </p>
           </div>
         </div>

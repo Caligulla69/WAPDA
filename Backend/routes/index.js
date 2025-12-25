@@ -367,7 +367,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
 
     report.remarks.push({
       user: `${req.user.name} (${req.user.department})`,
-      text: `Department action submitted: ${departmentAction.trim()}. Report forwarded to OE Department for verification.`,
+      text: `Department action submitted: ${departmentAction.trim()}.Report forwarded to OE Department for verification.`,
       timestamp: new Date().toISOString(),
     });
 
@@ -385,6 +385,77 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
       message: "Error updating report",
       error: error.message,
     });
+  }
+});
+
+// Add this route to your existing reports routes file
+
+// Forward report to OE Department for verification
+router.put("/reports/:id/forward-to-oe", isLoggedIn, async (req, res) => {
+  try {
+    const { remark } = req.body;
+
+    // Verify user is Resident Engineer
+    if (req.user.role !== "resident_engineer") {
+      return res.status(403).json({
+        message: "Only Resident Engineer can forward reports to OE Department",
+      });
+    }
+
+    const report = await ReportModel.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    // Check if department action has been completed
+    if (!report.departmentAction) {
+      return res.status(400).json({
+        message:
+          "Cannot forward to OE:  Department action has not been completed yet",
+      });
+    }
+
+    // Check if report is in the correct stage
+    if (report.currentStage !== "Resident Engineer") {
+      return res.status(400).json({
+        message: `Cannot forward to OE:  Report is currently at ${report.currentStage} stage`,
+      });
+    }
+
+    // Check if report is not already closed or rejected
+    if (report.status === "Closed" || report.status === "Rejected") {
+      return res.status(400).json({
+        message: `Cannot forward:  Report has already been ${report.status.toLowerCase()}`,
+      });
+    }
+
+    // Update report
+    report.currentStage = "OE Department";
+    report.status = "Under Review";
+
+    // Add remark about forwarding
+    const remarkText = remark
+      ? `Forwarded to OE Department for verification. RE Comment: ${remark}`
+      : "Forwarded to OE Department for verification by Resident Engineer";
+
+    report.remarks.push({
+      user: req.user.name,
+      text: remarkText,
+      timestamp: new Date().toISOString(),
+    });
+
+    await report.save();
+
+    res.json({
+      message: "Report forwarded to OE Department successfully",
+      report,
+    });
+  } catch (error) {
+    console.error("Error forwarding report to OE:", error);
+    res
+      .status(500)
+      .json({ message: "Error forwarding report to OE Department" });
   }
 });
 
@@ -441,7 +512,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
   try {
     const { departmentAction } = req.body;
 
-    if (!departmentAction) {
+    if (!departmentAction || !departmentAction.trim()) {
       return res.status(400).json({
         message: "Department action is required",
       });
@@ -453,26 +524,64 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
       return res.status(404).json({ message: "Report not found" });
     }
 
-    // Verify user is from the correct department
-    if (req.user.department !== report.referTo) {
+    // Handle both single department (string) and multiple departments (array)
+    const referredDepartments = Array.isArray(report.referTo)
+      ? report.referTo
+      : [report.referTo];
+
+    // Verify user is from one of the referred departments
+    if (!referredDepartments.includes(req.user.department)) {
       return res.status(403).json({
         message: "You can only update reports assigned to your department",
       });
     }
 
+    // Check if the report is in a valid state for action
+    // Allow action when:  currentStage is Department AND status is Pending OR Needs Revision
+    const isValidStage = report.currentStage === "Department";
+    const isValidStatus =
+      report.status === "Pending" || report.status === "Needs Revision";
+
+    if (!isValidStage || !isValidStatus) {
+      return res.status(400).json({
+        message: `Cannot submit action. Report is currently at "${report.currentStage}" stage with status "${report.status}". Action can only be submitted when report is at Department stage with Pending or Needs Revision status.`,
+      });
+    }
+
+    // Check if this is a revision (report was sent back for revision)
+    const isRevision = report.status === "Needs Revision";
+
+    // Add appropriate remark based on whether this is a revision or first submission
+    if (isRevision) {
+      report.remarks.push({
+        user: req.user.name,
+        text: `Department action resubmitted after revision: ${departmentAction}`,
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      report.remarks.push({
+        user: req.user.name,
+        text: `Department action submitted: ${departmentAction}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Update the report
     report.departmentAction = departmentAction;
     report.status = "Under Review";
+    report.currentStage = "OE Department";
 
-    report.remarks.push({
-      user: req.user.name,
-      text: `Department action submitted: ${departmentAction}`,
-      timestamp: new Date().toISOString(),
-    });
+    // Clear the revision reason since it's been addressed
+    if (report.revisionReason) {
+      report.revisionReason = undefined;
+    }
 
     await report.save();
 
     res.json({
-      message: "Department action added successfully",
+      message: isRevision
+        ? "Department action resubmitted successfully after revision"
+        : "Department action added successfully",
       report,
     });
   } catch (error) {
@@ -553,20 +662,34 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
     let newStatus = "";
     let newStage = "";
 
+    // Get the department(s) for reference in remarks
+    const referredDepartments = Array.isArray(report.referTo)
+      ? report.referTo.join(", ")
+      : report.referTo;
+
     switch (action) {
       case "approve":
         // Approve and forward to Resident Engineer
         newStatus = "Under Review";
         newStage = "Resident Engineer";
         remarkText =
-          "Report verified and approved by OE Department. Forwarded to Resident Engineer for final review.";
+          "Report verified and approved by OE Department.Forwarded to Resident Engineer for final review.";
+
+        // Clear revision reason if any
+        report.revisionReason = undefined;
         break;
 
       case "reject":
-        // Reject and return to original department
-        newStatus = "Rejected";
+        // Reject and return to original department for revision
+        newStatus = "Needs Revision"; // Changed from "Revision" to match enum
         newStage = "Department";
-        remarkText = `Report rejected by OE Department and returned to ${report.referTo} department for revision.`;
+
+        // Store the revision reason so department can see what needs to be fixed
+        const revisionFeedback =
+          remark || "Please review and update the department action";
+        report.revisionReason = revisionFeedback;
+
+        remarkText = `Sent back for revision to ${referredDepartments} department. Reason: ${revisionFeedback}`;
         break;
 
       case "refer":
@@ -577,22 +700,32 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
           });
         }
 
-        newStatus = "Pending";
+        newStatus = "Pending"; // Changed to Pending since new department needs to take fresh action
         newStage = "Department";
 
-        // Update the referTo field to the new department
-        report.referTo = department;
+        // Update the referTo field to the new department(s)
+        // Support both single department and array of departments
+        report.referTo = Array.isArray(department) ? department : department;
 
-        remarkText = `Report referred to ${department} department for further action.`;
+        // Clear previous department action since new department needs to act
+        report.departmentAction = undefined;
+
+        // Clear revision reason
+        report.revisionReason = undefined;
+
+        const newDepartments = Array.isArray(department)
+          ? department.join(", ")
+          : department;
+        remarkText = `Report referred to ${newDepartments} department for further action.`;
         break;
 
       default:
         return res.status(400).json({ message: "Invalid action" });
     }
 
-    // Add custom remark if provided
-    if (remark) {
-      remarkText += ` - ${remark}`;
+    // Add custom remark if provided (only for approve and refer, reject already includes it)
+    if (remark && action !== "reject") {
+      remarkText += ` Comment: ${remark}`;
     }
 
     // Update report
@@ -608,8 +741,15 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
 
     await report.save();
 
+    // Custom success messages
+    const successMessages = {
+      approve: "Report approved and forwarded to Resident Engineer",
+      reject: "Report sent back to department for revision",
+      refer: "Report referred to selected department(s)",
+    };
+
     res.json({
-      message: `Report ${action}ed successfully`,
+      message: successMessages[action],
       report,
     });
   } catch (error) {
@@ -1040,7 +1180,7 @@ router.put("/admin/users/:id/status", isLoggedIn, isAdmin, async (req, res) => {
     // Validate active parameter
     if (typeof active !== "boolean") {
       return res.status(400).json({
-        message: "Invalid active status. Must be true or false.",
+        message: "Invalid active status.Must be true or false.",
       });
     }
 
@@ -1193,7 +1333,7 @@ function isAdmin(req, res, next) {
   }
   res
     .status(403)
-    .json({ message: "Access denied. Admin privileges required." });
+    .json({ message: "Access denied.Admin privileges required." });
 }
 
 module.exports = router;

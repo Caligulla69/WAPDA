@@ -21,25 +21,20 @@ import {
   Bell,
   Volume2,
   VolumeX,
+  History,
 } from "lucide-react";
 import API_URL from "../../utils/api";
 import { logout } from "../../utils/logout";
 import { useNavigate } from "react-router-dom";
 
 // ============================================
-// Notification Sound Hook - Fixed to prevent re-renders
+// Notification Sound Hook
 // ============================================
 const useNotificationSound = () => {
   const audioContextRef = useRef(null);
-  const isMutedRef = useRef(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("notificationMuted") === "true";
-    }
-    return false;
-  });
-  const [isMuted, setIsMutedState] = useState(isMutedRef.current);
+  const isMutedRef = useRef(false);
+  const [isMuted, setIsMutedState] = useState(false);
 
-  // Initialize muted state from localStorage only once
   useEffect(() => {
     const saved = localStorage.getItem("notificationMuted");
     const muted = saved === "true";
@@ -51,39 +46,37 @@ const useNotificationSound = () => {
     if (isMutedRef.current) return;
 
     try {
-      if (! audioContextRef.current) {
+      if (!audioContextRef.current) {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       }
 
-      const audioContext = audioContextRef. current;
+      const audioContext = audioContextRef.current;
 
       if (audioContext.state === "suspended") {
-        audioContext. resume();
+        audioContext.resume();
       }
 
       const now = audioContext.currentTime;
 
-      // First bell tone
-      const osc1 = audioContext. createOscillator();
-      const gain1 = audioContext. createGain();
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
       osc1.connect(gain1);
-      gain1.connect(audioContext. destination);
-      osc1.frequency. setValueAtTime(830, now);
+      gain1.connect(audioContext.destination);
+      osc1.frequency.setValueAtTime(830, now);
       osc1.type = "sine";
       gain1.gain.setValueAtTime(0.2, now);
-      gain1.gain. exponentialRampToValueAtTime(0.01, now + 0.4);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
       osc1.start(now);
       osc1.stop(now + 0.4);
 
-      // Second bell tone
       setTimeout(() => {
         if (audioContextRef.current) {
-          const ctx = audioContextRef. current;
+          const ctx = audioContextRef.current;
           const osc2 = ctx.createOscillator();
           const gain2 = ctx.createGain();
           osc2.connect(gain2);
-          gain2.connect(ctx. destination);
-          osc2.frequency. setValueAtTime(1046, ctx.currentTime);
+          gain2.connect(ctx.destination);
+          osc2.frequency.setValueAtTime(1046, ctx.currentTime);
           osc2.type = "sine";
           gain2.gain.setValueAtTime(0.15, ctx.currentTime);
           gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
@@ -98,7 +91,7 @@ const useNotificationSound = () => {
 
   const toggleMute = useCallback(() => {
     const newValue = !isMutedRef.current;
-    isMutedRef. current = newValue;
+    isMutedRef.current = newValue;
     localStorage.setItem("notificationMuted", String(newValue));
     setIsMutedState(newValue);
   }, []);
@@ -114,13 +107,13 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
 
   return (
     <div className="fixed top-4 right-4 z-[100] space-y-2 max-w-sm w-full pointer-events-none">
-      {notifications. slice(0, 3).map((notification, index) => (
+      {notifications.slice(0, 3).map((notification, index) => (
         <div
           key={notification.id}
           className="bg-white border border-stone-200 rounded-lg shadow-lg overflow-hidden pointer-events-auto"
           style={{
             animation: "slideIn 0.3s ease-out forwards",
-            animationDelay:  `${index * 50}ms`,
+            animationDelay: `${index * 50}ms`,
           }}
         >
           <div className="p-4">
@@ -132,7 +125,9 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
                 <div className="flex items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-light text-stone-800">
-                      New Report Assigned
+                      {notification.type === "revision"
+                        ? "Report Needs Revision"
+                        : "New Report Assigned"}
                     </p>
                     <p className="text-xs text-stone-500 font-light mt-0.5">
                       {notification.report.serialNo}
@@ -171,16 +166,14 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
           <div className="h-0.5 bg-stone-100">
             <div
               className="h-full bg-stone-400"
-              style={{
-                animation: "shrink 5s linear forwards",
-              }}
+              style={{ animation: "shrink 5s linear forwards" }}
             />
           </div>
         </div>
       ))}
 
       {notifications.length > 3 && (
-        <div className="bg-stone-800 text-white text-xs text-center py-2 px-4 pointer-events-auto">
+        <div className="bg-stone-800 text-white text-xs text-center py-2 px-4 rounded-lg pointer-events-auto">
           +{notifications.length - 3} more notifications
         </div>
       )}
@@ -196,14 +189,8 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
 
       <style>{`
         @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateX(100%);
-          }
-          to {
-            opacity: 1;
-            transform:  translateX(0);
-          }
+          from { opacity: 0; transform: translateX(100%); }
+          to { opacity: 1; transform: translateX(0); }
         }
         @keyframes shrink {
           from { width: 100%; }
@@ -215,7 +202,7 @@ const NotificationToast = React.memo(({ notifications, onDismiss, onDismissAll, 
 });
 
 // ============================================
-// Notification Bell Component - Fixed to prevent re-renders
+// Notification Bell Component
 // ============================================
 const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
   const [isShaking, setIsShaking] = useState(false);
@@ -231,11 +218,14 @@ const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
     prevCountRef.current = count;
   }, [count]);
 
-  const handleMuteClick = useCallback((e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    onToggleMute();
-  }, [onToggleMute]);
+  const handleMuteClick = useCallback(
+    (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleMute();
+    },
+    [onToggleMute]
+  );
 
   return (
     <div className="flex items-center gap-1">
@@ -254,16 +244,14 @@ const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
 
       <div
         className={`relative p-2.5 border border-stone-700 ${
-          count > 0 ? "bg-stone-800" :  "bg-transparent"
+          count > 0 ?  "bg-stone-800" : "bg-transparent"
         }`}
-        style={{
-          animation: isShaking ? "bellShake 0.6s ease-in-out" : "none",
-        }}
+        style={{ animation: isShaking ? "bellShake 0.6s ease-in-out" : "none" }}
       >
-        <Bell className={`w-4 h-4 ${count > 0 ?  "text-white" : "text-stone-400"}`} />
+        <Bell className={`w-4 h-4 ${count > 0 ? "text-white" : "text-stone-400"}`} />
 
         {count > 0 && (
-          <span className="absolute -top-1. 5 -right-1.5 min-w-[18px] h-[18px] bg-amber-500 text-white text-[10px] font-medium flex items-center justify-center px-1">
+          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-amber-500 text-white text-[10px] font-medium flex items-center justify-center px-1">
             {count > 99 ? "99+" : count}
           </span>
         )}
@@ -272,7 +260,7 @@ const NotificationBell = React.memo(({ count, isMuted, onToggleMute }) => {
           @keyframes bellShake {
             0%, 100% { transform: rotate(0deg); }
             15% { transform: rotate(-12deg); }
-            30% { transform: rotate(12deg); }
+            30% { transform:  rotate(12deg); }
             45% { transform: rotate(-8deg); }
             60% { transform:  rotate(8deg); }
             75% { transform: rotate(-4deg); }
@@ -297,36 +285,51 @@ const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
       color: "bg-blue-50 text-blue-700 border-blue-200",
       dotColor: "bg-blue-400",
     },
-    "Needs Revision": {
-      color: "bg-orange-50 text-orange-700 border-orange-200",
+    "Needs Revision":  {
+      color:  "bg-transparent text-orange-700 border-orange-200",
       dotColor:  "bg-orange-400",
     },
-    Closed: {
-      color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    Closed:  {
+      color:  "bg-emerald-50 text-emerald-700 border-emerald-200",
       dotColor: "bg-emerald-400",
     },
     Rejected: {
       color: "bg-red-50 text-red-700 border-red-200",
-      dotColor:  "bg-red-400",
+      dotColor: "bg-red-400",
     },
   };
 
-  const config = statusConfig[report.status] || statusConfig. Pending;
+  const config = statusConfig[report.status] || statusConfig.Pending;
 
   const departments = Array.isArray(report.referTo)
-    ? report. referTo
-    : [report. referTo];
+    ? report.referTo
+    : [report.referTo];
+
+  // Check if this report needs action from the department
+  const needsRevision = report.status === "Needs Revision" && report.currentStage === "Department";
+  const isPending = report.status === "Pending" && report.currentStage === "Department";
+  const needsAction = needsRevision || isPending;
 
   return (
     <div
       onClick={onClick}
       className={`bg-white border hover:border-stone-300 hover:shadow-sm transition-all duration-300 cursor-pointer group overflow-hidden ${
-        isNew ? "border-amber-300 shadow-sm" : "border-stone-200"
+        isNew
+          ? "border-amber-300 shadow-sm"
+          : needsRevision
+          ? "border-orange-300"
+          : "border-stone-200"
       }`}
     >
       {isNew && (
         <div className="bg-amber-500 text-white text-xs font-light tracking-wider px-3 py-1 text-center">
           NEW REPORT ASSIGNED
+        </div>
+      )}
+      {needsRevision && ! isNew && (
+        <div className="bg-orange-500 text-white text-xs font-light tracking-wider px-3 py-1 text-center flex items-center justify-center gap-2">
+          <RefreshCw className="w-3 h-3" />
+          REVISION REQUIRED - ACTION NEEDED
         </div>
       )}
       <div className="p-5 sm:p-6">
@@ -339,9 +342,15 @@ const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
               <span
                 className={`px-2.5 py-1 text-xs font-medium border ${config.color} flex items-center gap-1.5 whitespace-nowrap`}
               >
-                <span className={`w-1.5 h-1.5 rounded-full ${config. dotColor}`} />
-                {report. status. toUpperCase()}
+                <span className={`w-1.5 h-1.5 rounded-full ${config.dotColor}`} />
+                {report.status.toUpperCase()}
               </span>
+              {needsAction && (
+                <span className="px-2.5 py-1 text-xs font-medium bg-stone-800 text-white flex items-center gap-1.5 whitespace-nowrap">
+                  <AlertCircle className="w-3 h-3" />
+                  ACTION REQUIRED
+                </span>
+              )}
             </div>
             <p className="text-stone-500 text-sm font-light truncate">
               {report.apparatus}
@@ -351,17 +360,47 @@ const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
         </div>
 
         <p className="text-stone-600 font-light leading-relaxed mb-4 line-clamp-2 text-sm sm:text-base">
-          {report. description}
+          {report.description}
         </p>
 
-        <div className="flex flex-wrap gap-1. 5 mb-4">
-          {departments. map((dept, idx) => (
+        {/* Show revision feedback if exists */}
+        {needsRevision && report.revisionReason && (
+          <div className="mb-4 p-3 bg-orange-50 border-l-4 border-orange-400">
+            <div className="flex items-center gap-2 mb-1">
+              <RefreshCw className="w-3.5 h-3.5 text-orange-600" />
+              <p className="text-xs text-orange-700 font-medium tracking-wide">
+                REVISION FEEDBACK
+              </p>
+            </div>
+            <p className="text-orange-800 font-light text-xs line-clamp-2">
+              {report.revisionReason}
+            </p>
+          </div>
+        )}
+
+        {/* Show previous department action if exists */}
+        {report.departmentAction && ! needsRevision && (
+          <div className="mb-4 p-3 bg-emerald-50 border-l-4 border-emerald-400">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <p className="text-xs text-emerald-700 font-medium tracking-wide">
+                DEPARTMENT ACTION SUBMITTED
+              </p>
+            </div>
+            <p className="text-emerald-800 font-light text-xs line-clamp-2">
+              {report.departmentAction}
+            </p>
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {departments.map((dept, idx) => (
             <span
               key={idx}
               className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-light ${
                 dept === userDepartment
                   ? "bg-stone-800 text-white"
-                  : "bg-stone-100 text-stone-600"
+                  :  "bg-stone-100 text-stone-600"
               }`}
             >
               <Building2 className="w-3 h-3" />
@@ -372,7 +411,7 @@ const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
 
         <div className="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-stone-500 font-light border-t border-stone-100 pt-4">
           <div className="flex items-center gap-2">
-            <Calendar className="w-3. 5 h-3.5 flex-shrink-0 text-stone-400" />
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
             <span className="whitespace-nowrap">{report.date}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -383,6 +422,12 @@ const ReportCard = React.memo(({ report, onClick, userDepartment, isNew }) => {
             <User className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
             <span className="truncate">{report.notifiedBy}</span>
           </div>
+          {report.remarks?.length > 0 && (
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-3.5 h-3.5 flex-shrink-0 text-stone-400" />
+              <span>{report.remarks.length}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -420,27 +465,53 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
     setIsSendingToOE(false);
   };
 
-  const canSendToOE =
+  // Check if department can take action
+  // Allow action when:
+  // 1.Status is Pending and stage is Department
+  // 2.Status is "Needs Revision" and stage is Department
+  const canTakeAction =
     report.currentStage === "Department" &&
+    (report.status === "Pending" || report.status === "Needs Revision") &&
     report.status !== "Closed" &&
     report.status !== "Rejected";
 
-  const wasSentBackForRevision =
-    report.status === "Rejected" && report.currentStage === "Department";
+  const isRevision = report.status === "Needs Revision";
 
-  const departmentActionHistory = report.remarks
-    ?.filter(
-      (r) =>
-        r. text.includes("Department action submitted:  ") ||
-        r.text.includes("Report rejected by OE")
-    )
-    .map((r) => ({
-      ...r,
-      actionText: r.text
-        .replace("Department action submitted:  ", "")
-        .split(".  Report")[0],
-      wasRejected: r.text.includes("Report rejected by OE"),
-    }));
+  // Get all department action history from remarks
+  const actionHistory = useMemo(() => {
+    if (!report.remarks) return [];
+
+    return report.remarks
+      .filter(
+        (r) =>
+          r.text.includes("Department action submitted: ") ||
+          r.text.includes("Sent back for revision: ") ||
+          r.text.includes("Report rejected by OE") ||
+          r.text.includes("Forwarded to OE Department")
+      )
+      .map((r) => {
+        let type = "action";
+        let content = r.text;
+
+        if (r.text.includes("Sent back for revision:")) {
+          type = "revision";
+          content = r.text.replace("Sent back for revision:", "").trim();
+        } else if (r.text.includes("Department action submitted:")) {
+          type = "action";
+          content = r.text.replace("Department action submitted:", "").trim();
+        } else if (r.text.includes("Report rejected by OE")) {
+          type = "rejected";
+        } else if (r.text.includes("Forwarded to OE")) {
+          type = "forwarded";
+        }
+
+        return {
+          ...r,
+          type,
+          content,
+        };
+      });
+  }, [report.remarks]);
 
   return (
     <div
@@ -457,9 +528,16 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
             <h3 className="text-lg sm:text-2xl font-light tracking-wide truncate">
               {report.serialNo}
             </h3>
-            <p className="text-stone-400 font-light text-xs sm:text-sm mt-1">
-              Stage: {report.currentStage}
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-stone-400 font-light text-xs sm:text-sm">
+                Stage: {report.currentStage}
+              </p>
+              {isRevision && (
+                <span className="px-2 py-0.5 bg-transparent text-orange-700 text-bold-xs font-light">
+                  NEEDS REVISION
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -470,8 +548,8 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
         </div>
 
         <div className="overflow-y-auto flex-1 p-5 sm:p-6 space-y-5">
-          {/* Status Alert */}
-          {wasSentBackForRevision && (
+          {/* Revision Alert */}
+          {isRevision && (
             <div className="bg-orange-50 border-l-4 border-orange-500 p-4">
               <div className="flex items-start gap-3">
                 <RefreshCw className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
@@ -481,7 +559,14 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                   </p>
                   <p className="text-xs sm:text-sm text-orange-800 font-light">
                     Please review the feedback below, update your action, and resubmit.
+                    All previous history has been preserved.
                   </p>
+                  {report.revisionReason && (
+                    <div className="mt-3 p-3 bg-orange-100 border border-orange-200">
+                      <p className="text-xs font-medium text-orange-900 mb-1">REVISION REASON:</p>
+                      <p className="text-sm text-orange-800 font-light">{report.revisionReason}</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -490,20 +575,18 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
           {/* Quick Info */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { label: "Status", value: report. status },
+              { label: "Status", value: report.status },
               { label: "Current Stage", value: report.currentStage },
               { label:  "Reported By", value: report.notifiedBy },
-              { label: "Date", value: report. date },
+              { label: "Date", value: report.date },
               { label: "Time", value: report.time },
-              { label: "Means", value: report. means },
+              { label: "Means", value: report.means },
             ].map((item, idx) => (
               <div key={idx} className="bg-white border border-stone-200 p-4">
                 <label className="block text-xs font-medium text-stone-500 mb-2 tracking-wider uppercase">
                   {item.label}
                 </label>
-                <p className="text-stone-800 font-light text-sm truncate">
-                  {item.value}
-                </p>
+                <p className="text-stone-800 font-light text-sm truncate">{item.value}</p>
               </div>
             ))}
           </div>
@@ -517,15 +600,15 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
               {departments.map((dept, idx) => (
                 <span
                   key={idx}
-                  className={`inline-flex items-center gap-1. 5 px-3 py-1.5 text-sm font-light border ${
-                    dept === user?. department
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-light border ${
+                    dept === user?.department
                       ?  "bg-stone-800 text-white border-stone-800"
                       :  "bg-stone-100 text-stone-700 border-stone-200"
                   }`}
                 >
                   <Building2 className="w-3.5 h-3.5" />
                   {dept}
-                  {dept === user?. department && (
+                  {dept === user?.department && (
                     <span className="text-xs opacity-75">(You)</span>
                   )}
                 </span>
@@ -538,9 +621,7 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
             <label className="block text-xs font-medium text-stone-500 mb-3 tracking-wider uppercase">
               Apparatus Affected
             </label>
-            <p className="text-stone-800 font-light text-sm break-words">
-              {report.apparatus}
-            </p>
+            <p className="text-stone-800 font-light text-sm break-words">{report.apparatus}</p>
           </div>
 
           {/* Description */}
@@ -560,7 +641,7 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                 Recommendation
               </label>
               <p className="text-stone-800 font-light leading-relaxed text-sm break-words">
-                {report. recommendation}
+                {report.recommendation}
               </p>
             </div>
           )}
@@ -577,50 +658,80 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
             </div>
           )}
 
-          {/* Action History */}
-          {departmentActionHistory && departmentActionHistory.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 p-5">
-              <label className="block text-xs font-medium text-blue-900 mb-4 tracking-wider uppercase flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Previous Department Actions
+          {/* Action History Timeline */}
+          {actionHistory.length > 0 && (
+            <div className="bg-stone-50 border border-stone-200 p-5">
+              <label className="block text-xs font-medium text-stone-600 mb-4 tracking-wider uppercase flex items-center gap-2">
+                <History className="w-4 h-4" />
+                Action History
               </label>
               <div className="space-y-4">
-                {departmentActionHistory.map((action, idx) => (
+                {actionHistory.map((action, idx) => (
                   <div
                     key={idx}
-                    className={`border-l-2 pl-4 py-2 ${
-                      action.wasRejected
-                        ? "border-orange-400 bg-orange-50/50"
-                        :  "border-blue-400"
+                    className={`border-l-4 pl-4 py-2 ${
+                      action.type === "revision"
+                        ? "border-orange-400 bg-orange-50"
+                        : action.type === "rejected"
+                        ?  "border-red-400 bg-red-50"
+                        : action.type === "forwarded"
+                        ? "border-blue-400 bg-blue-50"
+                        : "border-emerald-400 bg-emerald-50"
                     }`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                      <span className="text-xs font-medium text-blue-900">
-                        {action.user}
-                      </span>
-                      <span className="text-xs text-blue-700">
+                      <div className="flex items-center gap-2">
+                        {action.type === "revision" && (
+                          <RefreshCw className="w-3.5 h-3.5 text-orange-600" />
+                        )}
+                        {action.type === "rejected" && (
+                          <XCircle className="w-3.5 h-3.5 text-red-600" />
+                        )}
+                        {action.type === "forwarded" && (
+                          <Eye className="w-3.5 h-3.5 text-blue-600" />
+                        )}
+                        {action.type === "action" && (
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                        )}
+                        <span
+                          className={`text-xs font-medium ${
+                            action.type === "revision"
+                              ? "text-orange-900"
+                              :  action.type === "rejected"
+                              ? "text-red-900"
+                              : action.type === "forwarded"
+                              ? "text-blue-900"
+                              : "text-emerald-900"
+                          }`}
+                        >
+                          {action.user}
+                        </span>
+                      </div>
+                      <span className="text-xs text-stone-500">
                         {new Date(action.timestamp).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-sm text-blue-900 font-light">
-                      {action.actionText}
+                    <p
+                      className={`text-sm font-light ${
+                        action.type === "revision"
+                          ? "text-orange-800"
+                          :  action.type === "rejected"
+                          ? "text-red-800"
+                          : action.type === "forwarded"
+                          ? "text-blue-800"
+                          :  "text-emerald-800"
+                      }`}
+                    >
+                      {action.content}
                     </p>
-                    {action.wasRejected && (
-                      <div className="mt-2 flex items-center gap-1 text-orange-700">
-                        <RefreshCw className="w-3 h-3" />
-                        <span className="text-xs font-medium">
-                          Sent back for revision
-                        </span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Department Action Section */}
-          {report.departmentAction && ! canSendToOE ?  (
+          {/* Current Department Action (if exists and not in revision mode) */}
+          {report.departmentAction && ! canTakeAction && (
             <div className="bg-emerald-50 border border-emerald-200 p-5">
               <label className="block text-xs font-medium text-emerald-900 mb-3 tracking-wider uppercase flex items-center gap-2">
                 <CheckCircle className="w-4 h-4" />
@@ -630,51 +741,91 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                 {report.departmentAction}
               </p>
             </div>
-          ) : canSendToOE ?  (
-            <div className="bg-amber-50 border border-amber-200 p-5">
-              <label className="block text-xs font-medium text-amber-900 mb-3 tracking-wider uppercase flex items-center gap-2">
-                <AlertCircle className="w-4 h-4" />
-                {wasSentBackForRevision
-                  ? "Update Department Action (Required)"
-                  :  "Department Action Required"}
+          )}
+
+          {/* Department Action Input - Shows when action can be taken */}
+          {canTakeAction && (
+            <div
+              className={`p-5 ${
+                isRevision
+                  ? "bg-orange-50 border border-orange-200"
+                  : "bg-amber-50 border border-amber-200"
+              }`}
+            >
+              <label
+                className={`block text-xs font-medium mb-3 tracking-wider uppercase flex items-center gap-2 ${
+                  isRevision ?  "text-orange-900" : "text-amber-900"
+                }`}
+              >
+                {isRevision ? (
+                  <>
+                    <RefreshCw className="w-4 h-4" />
+                    Update Department Action (Revision Required)
+                  </>
+                ) : (
+                  <>
+                    <AlertCircle className="w-4 h-4" />
+                    Department Action Required
+                  </>
+                )}
               </label>
-              {wasSentBackForRevision && (
-                <p className="text-xs text-amber-800 mb-3 font-light">
-                  Please review the OE feedback and provide an updated action. 
-                </p>
+
+              {isRevision && (
+                <div className="mb-4 p-3 bg-white border border-orange-200">
+                  <p className="text-xs font-medium text-orange-800 mb-1">
+                    Previous action was sent back for revision. Please address the feedback and submit an updated action.
+                  </p>
+                  {report.departmentAction && (
+                    <div className="mt-2 pt-2 border-t border-orange-100">
+                      <p className="text-xs text-orange-700 mb-1">Previous Action:</p>
+                      <p className="text-sm text-orange-800 font-light italic">
+                        "{report.departmentAction}"
+                      </p>
+                    </div>
+                  )}
+                </div>
               )}
+
               <textarea
                 value={departmentAction}
-                onChange={(e) => setDepartmentAction(e.target. value)}
+                onChange={(e) => setDepartmentAction(e.target.value)}
                 placeholder={
-                  wasSentBackForRevision
+                  isRevision
                     ? "Describe the revised action taken by your department..."
                     : "Describe the action taken by your department..."
                 }
                 rows={4}
-                className="w-full px-4 py-3 bg-white border border-amber-200 text-sm text-stone-800 placeholder-stone-400 focus:border-amber-400 focus: outline-none transition-colors font-light resize-none"
+                className={`w-full px-4 py-3 bg-white border text-sm text-stone-800 placeholder-stone-400 focus:outline-none transition-colors font-light resize-none ${
+                  isRevision
+                    ? "border-orange-200 focus:border-orange-400"
+                    : "border-amber-200 focus: border-amber-400"
+                }`}
               />
               <button
                 onClick={handleSendToOE}
-                disabled={isSendingToOE || ! departmentAction. trim()}
-                className="mt-4 px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                disabled={isSendingToOE || ! departmentAction.trim()}
+                className={`mt-4 px-6 py-3 text-white font-light text-sm tracking-wide transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
+                  isRevision
+                    ? "bg-orange-600 hover:bg-orange-700"
+                    : "bg-amber-600 hover:bg-amber-700"
+                }`}
               >
                 {isSendingToOE ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    {wasSentBackForRevision ? "RESUBMITTING..." : "SENDING... "}
+                    {isRevision ? "RESUBMITTING..." : "SENDING..."}
                   </>
                 ) : (
                   <>
                     <Eye className="w-4 h-4" />
-                    {wasSentBackForRevision
+                    {isRevision
                       ? "RESUBMIT TO OE DEPARTMENT"
                       : "SUBMIT DEPARTMENT ACTION"}
                   </>
                 )}
               </button>
             </div>
-          ) : null}
+          )}
 
           {/* Remarks */}
           <div className="bg-white border border-stone-200 overflow-hidden">
@@ -683,20 +834,19 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                 <MessageSquare className="w-4 h-4" />
                 Remarks & Updates
                 <span className="ml-auto text-stone-400 font-normal">
-                  {report.remarks?. length || 0} entries
+                  {report.remarks?.length || 0} entries
                 </span>
               </label>
             </div>
 
             <div className="max-h-64 overflow-y-auto divide-y divide-stone-100">
-              {report.remarks && report.remarks.length > 0 ? (
+              {report.remarks && report.remarks.length > 0 ?  (
                 report.remarks.map((remark, idx) => {
                   const isOEFeedback =
-                    remark.text.includes("Report rejected by OE") ||
+                    remark.text.includes("Sent back for revision") ||
                     remark.text.includes("OE Department");
-                  const isDepartmentAction = remark.text.includes(
-                    "Department action submitted:"
-                  );
+                  const isDepartmentAction = remark.text.includes("Department action submitted:");
+                  const isForwarded = remark.text.includes("Forwarded to OE");
 
                   return (
                     <div
@@ -705,16 +855,20 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                         isOEFeedback
                           ? "border-l-orange-400 bg-orange-50/50"
                           : isDepartmentAction
+                          ? "border-l-emerald-400 bg-emerald-50/50"
+                          : isForwarded
                           ?  "border-l-blue-400 bg-blue-50/50"
                           : "border-l-stone-200"
                       }`}
                     >
-                      <div className="flex flex-wrap items-center gap-2 mb-1. 5">
+                      <div className="flex flex-wrap items-center gap-2 mb-1.5">
                         <MessageSquare
                           className={`w-3.5 h-3.5 ${
                             isOEFeedback
                               ? "text-orange-600"
-                              :  isDepartmentAction
+                              : isDepartmentAction
+                              ? "text-emerald-600"
+                              : isForwarded
                               ? "text-blue-600"
                               : "text-stone-400"
                           }`}
@@ -723,12 +877,14 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                           className={`text-sm font-medium ${
                             isOEFeedback
                               ? "text-orange-900"
-                              : isDepartmentAction
-                              ?  "text-blue-900"
+                              :  isDepartmentAction
+                              ? "text-emerald-900"
+                              :  isForwarded
+                              ? "text-blue-900"
                               : "text-stone-700"
                           }`}
                         >
-                          {remark. user}
+                          {remark.user}
                         </span>
                         <span className="text-xs text-stone-400">
                           {new Date(remark.timestamp).toLocaleString()}
@@ -739,6 +895,8 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                           isOEFeedback
                             ?  "text-orange-800"
                             : isDepartmentAction
+                            ? "text-emerald-800"
+                            : isForwarded
                             ? "text-blue-800"
                             :  "text-stone-600"
                         }`}
@@ -761,7 +919,7 @@ const ReportDetail = React.memo(({ report, onClose, onAddRemark, onSendToOE, use
                 <input
                   type="text"
                   value={remarkText}
-                  onChange={(e) => setRemarkText(e. target.value)}
+                  onChange={(e) => setRemarkText(e.target.value)}
                   onKeyPress={(e) => e.key === "Enter" && handleAddRemark()}
                   placeholder="Add a remark or update..."
                   className="flex-1 px-4 py-3 bg-white border border-stone-200 text-stone-800 text-sm placeholder-stone-400 focus: border-stone-400 focus:outline-none transition-colors font-light"
@@ -800,11 +958,12 @@ export default function DepartmentDashboard() {
   const [notifications, setNotifications] = useState([]);
   const [newReportIds, setNewReportIds] = useState(new Set());
   const previousReportIdsRef = useRef(new Set());
+  const previousRevisionIdsRef = useRef(new Set());
 
   const navigate = useNavigate();
   const { playNotificationSound, isMuted, toggleMute } = useNotificationSound();
 
-  // Check for new reports - stable reference
+  // Check for new reports and revision requests
   const checkForNewReports = useCallback(
     (newReports, userDepartment) => {
       if (! userDepartment) return;
@@ -812,22 +971,50 @@ export default function DepartmentDashboard() {
       const currentReportIds = new Set(newReports.map((r) => r._id));
       const previousIds = previousReportIdsRef.current;
 
+      // Check for newly assigned reports
       const newlyAddedReports = newReports.filter((report) => {
         const departments = Array.isArray(report.referTo)
-          ? report. referTo
+          ? report.referTo
           :  [report.referTo];
-        const isForDepartment = departments. includes(userDepartment);
-        const isNew = !previousIds. has(report._id);
+        const isForDepartment = departments.includes(userDepartment);
+        const isNew = !previousIds.has(report._id);
 
         return isForDepartment && isNew && previousIds.size > 0;
       });
 
-      if (newlyAddedReports.length > 0) {
+      // Check for reports that were sent back for revision
+      const currentRevisionIds = new Set(
+        newReports
+          .filter(
+            (r) =>
+              r.status === "Needs Revision" &&
+              r.currentStage === "Department" &&
+              (Array.isArray(r.referTo) ? r.referTo :  [r.referTo]).includes(userDepartment)
+          )
+          .map((r) => r._id)
+      );
+
+      const newRevisionReports = newReports.filter((report) => {
+        const isRevision =
+          report.status === "Needs Revision" && report.currentStage === "Department";
+        const departments = Array.isArray(report.referTo)
+          ? report.referTo
+          : [report.referTo];
+        const isForDepartment = departments.includes(userDepartment);
+        const isNewRevision = !previousRevisionIdsRef.current.has(report._id);
+
+        return isRevision && isForDepartment && isNewRevision && previousRevisionIdsRef.current.size > 0;
+      });
+
+      const allNewReports = [...newlyAddedReports, ...newRevisionReports];
+
+      if (allNewReports.length > 0) {
         playNotificationSound();
 
-        const newNotifications = newlyAddedReports. map((report) => ({
+        const newNotifications = allNewReports.map((report) => ({
           id: `${report._id}-${Date.now()}`,
           report,
+          type: report.status === "Needs Revision" ? "revision" : "new",
           timestamp: new Date(),
         }));
 
@@ -835,16 +1022,14 @@ export default function DepartmentDashboard() {
 
         setNewReportIds((prev) => {
           const updated = new Set(prev);
-          newlyAddedReports. forEach((r) => updated.add(r._id));
+          allNewReports.forEach((r) => updated.add(r._id));
           return updated;
         });
 
         // Auto-dismiss after 5 seconds
         newNotifications.forEach((notification) => {
           setTimeout(() => {
-            setNotifications((prev) =>
-              prev.filter((n) => n.id !== notification.id)
-            );
+            setNotifications((prev) => prev.filter((n) => n.id !== notification.id));
           }, 5000);
         });
 
@@ -852,13 +1037,14 @@ export default function DepartmentDashboard() {
         setTimeout(() => {
           setNewReportIds((prev) => {
             const updated = new Set(prev);
-            newlyAddedReports.forEach((r) => updated.delete(r._id));
+            allNewReports.forEach((r) => updated.delete(r._id));
             return updated;
           });
         }, 30000);
       }
 
       previousReportIdsRef.current = currentReportIds;
+      previousRevisionIdsRef.current = currentRevisionIds;
     },
     [playNotificationSound]
   );
@@ -890,10 +1076,10 @@ export default function DepartmentDashboard() {
         }
 
         const userData = await userResponse.json();
-        setUser(userData. user);
+        setUser(userData.user);
         setError(null);
       } catch (err) {
-        setError(err.message || "Failed to load data.  Please try again.");
+        setError(err.message || "Failed to load data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -902,7 +1088,7 @@ export default function DepartmentDashboard() {
     fetchUser();
   }, []);
 
-  // Fetch reports - stable reference
+  // Fetch reports
   const fetchReports = useCallback(
     async (isBackgroundRefresh = false) => {
       try {
@@ -924,8 +1110,18 @@ export default function DepartmentDashboard() {
 
         if (isBackgroundRefresh && user) {
           checkForNewReports(data, user.department);
-        } else if (!isBackgroundRefresh) {
+        } else if (! isBackgroundRefresh && user) {
           previousReportIdsRef.current = new Set(data.map((r) => r._id));
+          previousRevisionIdsRef.current = new Set(
+            data
+              .filter(
+                (r) =>
+                  r.status === "Needs Revision" &&
+                  r.currentStage === "Department" &&
+                  (Array.isArray(r.referTo) ? r.referTo : [r.referTo]).includes(user.department)
+              )
+              .map((r) => r._id)
+          );
         }
 
         setReports(data);
@@ -959,15 +1155,12 @@ export default function DepartmentDashboard() {
   const handleSendToOE = useCallback(
     async (reportId, departmentAction) => {
       try {
-        const response = await fetch(
-          `${API_URL}/reports/${reportId}/department-action`,
-          {
-            method: "PUT",
-            headers:  { "Content-Type":  "application/json" },
-            credentials: "include",
-            body: JSON. stringify({ departmentAction }),
-          }
-        );
+        const response = await fetch(`${API_URL}/reports/${reportId}/department-action`, {
+          method: "PUT",
+          headers: { "Content-Type":  "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ departmentAction }),
+        });
 
         if (!response.ok) {
           const data = await response.json();
@@ -976,9 +1169,7 @@ export default function DepartmentDashboard() {
 
         const data = await response.json();
 
-        setReports((prev) =>
-          prev.map((r) => (r._id === reportId ? data. report : r))
-        );
+        setReports((prev) => prev.map((r) => (r._id === reportId ? data.report : r)));
 
         if (selectedReport && selectedReport._id === reportId) {
           setSelectedReport(data.report);
@@ -997,20 +1188,38 @@ export default function DepartmentDashboard() {
 
     return reports.filter((r) => {
       const departments = Array.isArray(r.referTo) ? r.referTo : [r.referTo];
-      const matchesDepartment = departments.includes(user. department);
+      const matchesDepartment = departments.includes(user.department);
 
       const departmentsStr = departments.join(" ");
       const matchesSearch =
-        r.serialNo.toLowerCase().includes(searchTerm. toLowerCase()) ||
+        r.serialNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.apparatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
         r.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
         departmentsStr.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus = statusFilter === "all" || r. status === statusFilter;
+      const matchesStatus = statusFilter === "all" || r.status === statusFilter;
 
       return matchesDepartment && matchesSearch && matchesStatus;
     });
   }, [reports, searchTerm, statusFilter, user]);
+
+  // Get counts for stats
+  const reportCounts = useMemo(() => {
+    if (! user) return { total: 0, pending: 0, underReview: 0, needsRevision: 0, closed: 0 };
+
+    const deptReports = reports.filter((r) => {
+      const departments = Array.isArray(r.referTo) ? r.referTo : [r.referTo];
+      return departments.includes(user.department);
+    });
+
+    return {
+      total:  deptReports.length,
+      pending:  deptReports.filter((r) => r.status === "Pending").length,
+      underReview: deptReports.filter((r) => r.status === "Under Review").length,
+      needsRevision: deptReports.filter((r) => r.status === "Needs Revision").length,
+      closed: deptReports.filter((r) => r.status === "Closed").length,
+    };
+  }, [reports, user]);
 
   const handleAddRemark = useCallback(
     async (reportId, text) => {
@@ -1029,9 +1238,7 @@ export default function DepartmentDashboard() {
 
         const data = await response.json();
 
-        setReports((prev) =>
-          prev.map((r) => (r._id === reportId ? data.report :  r))
-        );
+        setReports((prev) => prev.map((r) => (r._id === reportId ? data.report : r)));
 
         if (selectedReport && selectedReport._id === reportId) {
           setSelectedReport(data.report);
@@ -1067,9 +1274,7 @@ export default function DepartmentDashboard() {
       <div className="min-h-screen bg-stone-100 flex items-center justify-center p-4">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <p className="text-stone-600 font-light mb-4">
-            Please log in to continue
-          </p>
+          <p className="text-stone-600 font-light mb-4">Please log in to continue</p>
           <button
             onClick={() => navigate("/login")}
             className="px-6 py-2 bg-stone-900 text-white font-light text-sm hover:bg-stone-800 transition-colors"
@@ -1112,7 +1317,6 @@ export default function DepartmentDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Notification Bell */}
               <NotificationBell
                 count={notifications.length}
                 isMuted={isMuted}
@@ -1124,9 +1328,7 @@ export default function DepartmentDashboard() {
                 disabled={isRefreshing}
                 className="flex items-center justify-center gap-2 px-4 py-2.5 bg-stone-800 hover:bg-stone-700 transition-all duration-200 border border-stone-700 text-sm font-light tracking-wide disabled:opacity-50"
               >
-                <RefreshCw
-                  className={`w-4 h-4 ${isRefreshing ? "animate-spin" :  ""}`}
-                />
+                <RefreshCw className={`w-4 h-4 ${isRefreshing ?  "animate-spin" : ""}`} />
                 <span className="hidden sm:inline">REFRESH</span>
               </button>
               <button
@@ -1150,35 +1352,38 @@ export default function DepartmentDashboard() {
         )}
 
         {/* Stats */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Total", value: departmentReports.length },
-            {
-              label: "Pending",
-              value: departmentReports.filter((r) => r.status === "Pending")
-                .length,
-            },
-            {
-              label:  "Under Review",
-              value: departmentReports.filter((r) => r.status === "Under Review")
-                .length,
-            },
-            {
-              label: "Closed",
-              value:  departmentReports. filter((r) => r.status === "Closed")
-                .length,
-            },
-          ]. map((stat, idx) => (
-            <div
-              key={idx}
-              className="bg-white border border-stone-200 p-5"
-            >
-              <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
-                {stat.label}
-              </p>
-              <p className="text-3xl font-light text-stone-800">{stat.value}</p>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white border border-stone-200 p-5">
+            <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
+              Total
+            </p>
+            <p className="text-3xl font-light text-stone-800">{reportCounts.total}</p>
+          </div>
+          <div className="bg-white border border-stone-200 p-5">
+            <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
+              Pending
+            </p>
+            <p className="text-3xl font-light text-stone-800">{reportCounts.pending}</p>
+          </div>
+          <div className="bg-white border border-stone-200 p-5">
+            <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
+              Under Review
+            </p>
+            <p className="text-3xl font-light text-stone-800">{reportCounts.underReview}</p>
+          </div>
+          <div className="bg-white border border-orange-200 p-5">
+            <p className="text-xs text-orange-600 font-medium tracking-wider uppercase mb-2 flex items-center gap-1">
+              <RefreshCw className="w-3 h-3" />
+              Needs Revision
+            </p>
+            <p className="text-3xl font-light text-orange-600">{reportCounts.needsRevision}</p>
+          </div>
+          <div className="bg-white border border-stone-200 p-5">
+            <p className="text-xs text-stone-500 font-medium tracking-wider uppercase mb-2">
+              Closed
+            </p>
+            <p className="text-3xl font-light text-stone-800">{reportCounts.closed}</p>
+          </div>
         </div>
 
         {/* Filters */}
@@ -1215,28 +1420,25 @@ export default function DepartmentDashboard() {
         <div className="mb-4">
           <p className="text-sm text-stone-500 font-light">
             Showing{" "}
-            <span className="font-medium text-stone-700">
-              {departmentReports.length}
-            </span>{" "}
-            reports for{" "}
-            <span className="font-medium text-stone-700">{user.department}</span>
+            <span className="font-medium text-stone-700">{departmentReports.length}</span> reports
+            for <span className="font-medium text-stone-700">{user.department}</span>
           </p>
         </div>
 
         {/* Reports List */}
         <div className="space-y-4">
-          {departmentReports.length === 0 ?  (
+          {departmentReports.length === 0 ? (
             <div className="bg-white border border-stone-200 p-12 text-center">
               <FileText className="w-12 h-12 text-stone-300 mx-auto mb-4" />
               <p className="text-stone-500 font-light mb-2">No reports found</p>
               <p className="text-stone-400 text-sm font-light">
                 {searchTerm || statusFilter !== "all"
                   ? "Try adjusting your search or filter"
-                  : `Reports assigned to ${user.department} will appear here`}
+                  :  `Reports assigned to ${user.department} will appear here`}
               </p>
             </div>
           ) : (
-            departmentReports.map((report) => (
+                        departmentReports.map((report) => (
               <ReportCard
                 key={report._id}
                 report={report}
