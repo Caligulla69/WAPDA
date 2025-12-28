@@ -6,7 +6,8 @@ const LocalStrategy = require("passport-local").Strategy;
 const Engineer = require("../models/Users");
 const DepartmentalUser = require("../models/Emp");
 const ReportModel = require("../models/Report");
-
+const crypto = require("crypto");
+const { log } = require("console");
 // -----------------------------
 // 🏠 BASIC ROUTE
 // -----------------------------
@@ -94,66 +95,170 @@ router.post("/engineer/login", (req, res, next) => {
   })(req, res, next);
 });
 
-// Departmental User Registration
+
+
+
+// Departmental User Registration - Custom implementation
 router.post("/department/register", async (req, res) => {
   try {
-    const { name, employeeId, password, department, phoneNumber, email } =
-      req.body;
+    const { name, employeeId, password, department, phoneNumber, email } = req. body;
 
-    const existingUser = await DepartmentalUser.findOne({ employeeId });
-    if (existingUser)
-      return res
-        .status(400)
-        .json({ message: "Employee ID already registered" });
-
-    const newUser = new DepartmentalUser({
+    console.log("📝 Registration attempt:", {
       name,
       employeeId,
-      email, // Optional
       department,
       phoneNumber,
-      role: "department",
+      email:  email || "(not provided)",
     });
 
-    await DepartmentalUser.register(newUser, password);
+    // Validate required fields
+    if (! name || !employeeId || !password || !department) {
+      return res.status(400).json({
+        message: "Name, Employee ID, Password, and Department are required",
+      });
+    }
 
-    // ✅ FIX: Use correct strategy name
-    passport.authenticate("departmental-local")(req, res, () => {
-      const safeUser = {
+    // Validate password length
+    if (password.length < 8) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters long",
+      });
+    }
+
+    // Validate department is in allowed list
+    const allowedDepartments = [
+      "EME (P)",
+      "EME (SY)",
+      "P&IE",
+      "MME (P)",
+      "OE",
+      "MME (A)",
+      "XEN (EW)",
+      "XEN (BARAL)",
+      "SOS",
+      "ITRE",
+      "Admin",
+    ];
+
+    if (!allowedDepartments.includes(department)) {
+      return res.status(400).json({
+        message: `Invalid department`,
+      });
+    }
+
+    // Check if this employeeId already exists in this SPECIFIC department
+    // This is our custom uniqueness check (employeeId + department)
+    const existingUser = await DepartmentalUser.findOne({
+      employeeId:  employeeId. toUpperCase().trim(),
+      department: department,
+    });
+
+    if (existingUser) {
+      console.log("❌ User already exists in this department:", existingUser.employeeId, existingUser.department);
+      return res.status(400).json({
+        message: `Employee ID ${employeeId} is already registered in ${department}`,
+      });
+    }
+
+    console.log("✅ No existing user found in this department, creating new user...");
+
+    // Create new user object
+    const newUser = new DepartmentalUser({
+      name:  name.trim(),
+      employeeId:  employeeId.toUpperCase().trim(),
+      email: email ?  email.toLowerCase().trim() : undefined,
+      department,
+      phoneNumber:  phoneNumber ?  phoneNumber.trim() : undefined,
+      role: "department",
+      status: "active",
+    });
+
+    // Use setPassword instead of register to avoid passport's uniqueness check
+    // setPassword is a method provided by passport-local-mongoose
+    await new Promise((resolve, reject) => {
+      newUser.setPassword(password, (err, userWithPassword) => {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(userWithPassword);
+        }
+      });
+    });
+
+    // Save the user directly
+    await newUser. save();
+
+    console.log("🎉 Registration complete for:", newUser.employeeId, "in", newUser.department);
+
+    res.status(201).json({
+      message: "Registration submitted successfully.  Awaiting admin approval.",
+      user: {
         _id: newUser._id,
         name: newUser.name,
-        employeeId: newUser.employeeId,
-        email: newUser.email,
+        employeeId: newUser. employeeId,
         department: newUser.department,
-        role: newUser.role,
-        userType: "departmental",
-      };
-      res
-        .status(201)
-        .json({ message: "Registration successful", user: safeUser });
+        status: newUser.status,
+      },
     });
   } catch (error) {
-    console.error("Departmental registration error:", error);
-    res.status(500).json({ message: "Server error during registration" });
+    console.error("❌ Registration error:", error);
+
+    // Handle duplicate key error from MongoDB compound index
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: "This Employee ID is already registered in this department",
+      });
+    }
+
+    // Handle validation errors
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error. errors).map((e) => e.message);
+      return res.status(400).json({
+        message: messages.join(".  "),
+      });
+    }
+
+    res.status(500).json({
+      message: "Server error during registration",
+    });
   }
 });
-
 // Departmental User Login
 router.post("/department/login", (req, res, next) => {
-  // ✅ FIX: Use correct strategy name
+  const { employeeId, password, department } = req.body;
+
+  // Validate required fields
+  if (!employeeId || !password || ! department) {
+    return res.status(400).json({
+      message: "Employee ID, Password, and Department are required",
+    });
+  }
+  
+  console.log(employeeId,password,department);
+  
   passport.authenticate("departmental-local", (err, user, info) => {
-    if (err) return next(err);
-    if (!user)
-      return res
-        .status(401)
-        .json({ message: info?.message || "Invalid credentials" });
+    if (err) {
+      console.error("Authentication error:", err);
+      return next(err);
+    }
+
+    if (! user) {
+      return res.status(401).json({
+        message: info?.message || "Invalid credentials",
+      });
+    }
 
     req.logIn(user, (err) => {
-      if (err) return next(err);
+      if (err) {
+        console.error("Login error:", err);
+        return next(err);
+      }
 
       req.session.save((saveErr) => {
-        if (saveErr)
+        if (saveErr) {
+          console.error("Session save error:", saveErr);
           return res.status(500).json({ message: "Session creation failed" });
+        }
 
         const safeUser = {
           _id: user._id,
@@ -164,6 +269,7 @@ router.post("/department/login", (req, res, next) => {
           role: user.role,
           userType: "departmental",
         };
+          console.log("user data from backend",safeUser);
 
         res.status(200).json({
           message: "Login successful",
@@ -436,7 +542,7 @@ router.put("/reports/:id/forward-to-oe", isLoggedIn, async (req, res) => {
 
     // Add remark about forwarding
     const remarkText = remark
-      ? `Forwarded to OE Department for verification. RE Comment: ${remark}`
+      ? `Forwarded to OE Department for verification.RE Comment: ${remark}`
       : "Forwarded to OE Department for verification by Resident Engineer";
 
     report.remarks.push({
@@ -544,7 +650,7 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
 
     if (!isValidStage || !isValidStatus) {
       return res.status(400).json({
-        message: `Cannot submit action. Report is currently at "${report.currentStage}" stage with status "${report.status}". Action can only be submitted when report is at Department stage with Pending or Needs Revision status.`,
+        message: `Cannot submit action.Report is currently at "${report.currentStage}" stage with status "${report.status}".Action can only be submitted when report is at Department stage with Pending or Needs Revision status.`,
       });
     }
 
@@ -592,7 +698,101 @@ router.put("/reports/:id/department-action", isLoggedIn, async (req, res) => {
     });
   }
 });
+// Department refers report to other department(s)
+router.put("/reports/:id/department-refer", isLoggedIn, async (req, res) => {
+  try {
+    const { departments, remark } = req.body;
 
+    // Validate departments
+    if (!departments || !Array.isArray(departments) || departments.length === 0) {
+      return res.status(400).json({
+        message: "At least one department must be selected",
+      });
+    }
+
+    // Verify user has a department
+    if (!req.user.department) {
+      return res.status(403).json({
+        message: "Only department users can refer reports",
+      });
+    }
+
+    const report = await ReportModel.findById(req.params.id);
+
+    if (!report) {
+      return res.status(404).json({ message: "Report not found" });
+    }
+
+    // Check if the user's department is one of the currently referred departments
+    const currentDepartments = Array.isArray(report.referTo)
+      ? report.referTo
+      :  [report.referTo];
+
+    if (! currentDepartments.includes(req.user.department)) {
+      return res.status(403).json({
+        message: "You can only refer reports that are assigned to your department",
+      });
+    }
+
+    // Check if report is at Department stage
+    if (report.currentStage !== "Department") {
+      return res.status(400).json({
+        message: `Cannot refer report.Report is currently at "${report.currentStage}" stage`,
+      });
+    }
+
+    // Check if report is not closed or rejected
+    if (report.status === "Closed" || report.status === "Rejected") {
+      return res.status(400).json({
+        message: `Cannot refer report.Report has been ${report.status.toLowerCase()}`,
+      });
+    }
+
+    // Update the referTo field
+    report.referTo = departments;
+
+    // Reset status to Pending if it was Needs Revision (new departments need to take fresh action)
+    // But keep existing departmentAction if current department is still included
+    const currentDeptStillIncluded = departments.includes(req.user.department);
+    
+    if (! currentDeptStillIncluded) {
+      // Current department removed itself, clear the department action
+      report.departmentAction = undefined;
+      report.status = "Pending";
+    }
+
+    // If new departments are added and status was Needs Revision, keep it as is
+    // so the new departments know there was a revision needed
+
+    // Build remark text
+    const deptList = departments.join(", ");
+    let remarkText = `Report referred to ${deptList} by ${req.user.department}.`;
+    
+    if (remark && remark.trim()) {
+      remarkText += ` Reason: ${remark}`;
+    }
+
+    if (! currentDeptStillIncluded) {
+      remarkText += ` (${req.user.department} removed from assignment)`;
+    }
+
+    report.remarks.push({
+      user: req.user.name,
+      text:  remarkText,
+      timestamp: new Date().toISOString(),
+    });
+
+    await report.save();
+
+    res.json({
+      message: `Report referred to ${deptList} successfully`,
+      report,
+    });
+  } catch (error) {
+    console.error("Error referring report:", error);
+    res.status(500).json({ message: "Error referring report" });
+  }
+});
 // Add remark to report
 router.post("/reports/:id/remarks", isLoggedIn, async (req, res) => {
   try {
@@ -689,7 +889,7 @@ router.put("/reports/:id/oe-action", isLoggedIn, async (req, res) => {
           remark || "Please review and update the department action";
         report.revisionReason = revisionFeedback;
 
-        remarkText = `Sent back for revision to ${referredDepartments} department. Reason: ${revisionFeedback}`;
+        remarkText = `Sent back for revision to ${referredDepartments} department.Reason: ${revisionFeedback}`;
         break;
 
       case "refer":

@@ -28,7 +28,7 @@ const FloatingInput = ({
   value,
   onChange,
   label,
-  icon:  Icon,
+  icon: Icon,
   error,
   rightElement,
   autoComplete,
@@ -52,7 +52,7 @@ const FloatingInput = ({
         className={`w-full px-4 py-4 pt-6 bg-white border text-stone-800 text-base focus:outline-none transition-all duration-300 font-light rounded-sm peer ${
           error
             ? "border-red-300 focus:border-red-500"
-            :  isFocused
+            : isFocused
             ? "border-stone-800 shadow-sm"
             : "border-stone-200 hover:border-stone-300"
         } ${disabled ? "bg-stone-50 cursor-not-allowed opacity-60" : ""}`}
@@ -112,7 +112,7 @@ const FloatingSelect = ({
         className={`w-full px-4 py-4 pt-6 bg-white border text-stone-800 text-base focus: outline-none transition-all duration-300 font-light rounded-sm appearance-none cursor-pointer ${
           isFocused
             ? "border-stone-800 shadow-sm"
-            :  "border-stone-200 hover:border-stone-300"
+            : "border-stone-200 hover:border-stone-300"
         }`}
       >
         {options.map((option) => (
@@ -167,7 +167,7 @@ export default function DepartmentEmployeeAuth() {
 
   // Calculate password strength
   useEffect(() => {
-    if (! formData.password) {
+    if (!formData.password) {
       setPasswordStrength(0);
       return;
     }
@@ -185,7 +185,7 @@ export default function DepartmentEmployeeAuth() {
     setErrorMessage("");
     setPendingApproval(false);
     if (validationErrors[name]) {
-      setValidationErrors((prev) => ({ ...prev, [name]:  "" }));
+      setValidationErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
@@ -198,7 +198,7 @@ export default function DepartmentEmployeeAuth() {
 
     if (!formData.password) {
       errors.password = "Password is required";
-    } else if (! isLogin && formData.password.length < 8) {
+    } else if (!isLogin && formData.password.length < 8) {
       errors.password = "Password must be at least 8 characters";
     }
 
@@ -218,6 +218,8 @@ export default function DepartmentEmployeeAuth() {
     return Object.keys(errors).length === 0;
   };
 
+  // In the handleSubmit function, update the login payload:
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -233,17 +235,21 @@ export default function DepartmentEmployeeAuth() {
 
       const payload = isLogin
         ? {
-            employeeId: formData.employeeId,
+            employeeId: formData.employeeId.toUpperCase(),
             password: formData.password,
+            department: formData.department, // ✅ IMPORTANT: Include department in login!
           }
         : {
             name: formData.name,
-            employeeId: formData.employeeId,
+            employeeId: formData.employeeId.toUpperCase(),
             phoneNumber: formData.phoneNumber,
             department: formData.department,
             email: formData.email,
-            password:  formData.password,
+            password: formData.password,
           };
+
+          console.log(payload);
+          
 
       const response = await fetch(endpoint, {
         method: "POST",
@@ -258,8 +264,10 @@ export default function DepartmentEmployeeAuth() {
 
       if (!response.ok) {
         // Check if it's a pending approval situation
-        if (data.message?.toLowerCase().includes("pending") || 
-            data.message?.toLowerCase().includes("approval")) {
+        if (
+          data.message?.toLowerCase().includes("pending") ||
+          data.message?.toLowerCase().includes("approval")
+        ) {
           setPendingApproval(true);
           throw new Error(data.message);
         }
@@ -268,23 +276,23 @@ export default function DepartmentEmployeeAuth() {
 
       setActionSuccess(true);
 
-      // Redirect after success
+      
+      // Redirect after successful login
       setTimeout(() => {
         navigate("/depDashboard");
       }, 1500);
     } catch (error) {
       console.error("Error:", error);
-      if (! pendingApproval) {
+      if (!pendingApproval) {
         setErrorMessage(error.message);
       }
     } finally {
       setIsLoading(false);
     }
   };
-
   const resetForm = () => {
     setFormData({
-      name:  "",
+      name: "",
       employeeId: "",
       email: "",
       password: "",
@@ -300,11 +308,11 @@ export default function DepartmentEmployeeAuth() {
 
   const departmentOptions = [
     { value: "EME (P)", label: "EME (P)" },
-    { value:  "EME (SY)", label: "EME (SY)" },
+    { value: "EME (SY)", label: "EME (SY)" },
     { value: "P&IE", label: "P&IE" },
     { value: "MME (P)", label: "MME (P)" },
     { value: "MME (A)", label: "MME (A)" },
-    { value:  "XEN (BARAL)", label: "XEN (BARAL)" },
+    { value: "XEN (BARAL)", label: "XEN (BARAL)" },
     { value: "SOS", label: "SOS" },
     { value: "OE", label: "OE" },
     { value: "ITRE", label: "ITRE" },
@@ -459,7 +467,7 @@ export default function DepartmentEmployeeAuth() {
             </div>
           )}
 
-          {errorMessage && ! pendingApproval && (
+          {errorMessage && !pendingApproval && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 text-sm rounded-sm flex items-start gap-3 animate-in slide-in-from-top-2 duration-300">
               <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <div>
@@ -477,7 +485,7 @@ export default function DepartmentEmployeeAuth() {
                 <p className="font-light">
                   {isLogin
                     ? "Redirecting to your dashboard..."
-                    :  "Registration submitted!  Awaiting admin approval."}
+                    : "Registration submitted!  Awaiting admin approval."}
                 </p>
               </div>
             </div>
@@ -493,7 +501,7 @@ export default function DepartmentEmployeeAuth() {
               className={`flex-1 py-2.5 text-center transition-all duration-300 text-sm font-light tracking-wide rounded-sm ${
                 isLogin
                   ? "bg-white text-stone-900 shadow-sm"
-                  :  "text-stone-500 hover:text-stone-700"
+                  : "text-stone-500 hover:text-stone-700"
               }`}
             >
               SIGN IN
@@ -504,7 +512,7 @@ export default function DepartmentEmployeeAuth() {
                 resetForm();
               }}
               className={`flex-1 py-2.5 text-center transition-all duration-300 text-sm font-light tracking-wide rounded-sm ${
-                ! isLogin
+                !isLogin
                   ? "bg-white text-stone-900 shadow-sm"
                   : "text-stone-500 hover:text-stone-700"
               }`}
@@ -567,7 +575,7 @@ export default function DepartmentEmployeeAuth() {
             )}
 
             {/* Phone field */}
-            {! isLogin && (
+            {!isLogin && (
               <FloatingInput
                 id="phoneNumber"
                 name="phoneNumber"
@@ -596,7 +604,7 @@ export default function DepartmentEmployeeAuth() {
                 rightElement={
                   <button
                     type="button"
-                    onClick={() => setShowPassword(! showPassword)}
+                    onClick={() => setShowPassword(!showPassword)}
                     className="text-stone-400 hover:text-stone-600 transition-colors p-1"
                   >
                     {showPassword ? (
@@ -608,7 +616,7 @@ export default function DepartmentEmployeeAuth() {
                 }
               />
               {/* Password strength indicator */}
-              {! isLogin && formData.password && (
+              {!isLogin && formData.password && (
                 <div className="flex items-center gap-2 px-1">
                   <div className="flex-1 flex gap-1">
                     {[1, 2, 3, 4].map((level) => (
@@ -616,7 +624,7 @@ export default function DepartmentEmployeeAuth() {
                         key={level}
                         className={`h-1 flex-1 rounded-full transition-all duration-300 ${
                           passwordStrength >= level
-                            ?  getPasswordStrengthColor()
+                            ? getPasswordStrengthColor()
                             : "bg-stone-200"
                         }`}
                       />
@@ -628,7 +636,7 @@ export default function DepartmentEmployeeAuth() {
                         ? "text-emerald-600"
                         : passwordStrength >= 2
                         ? "text-yellow-600"
-                        :  "text-red-500"
+                        : "text-red-500"
                     }`}
                   >
                     {getPasswordStrengthText()}
@@ -671,7 +679,7 @@ export default function DepartmentEmployeeAuth() {
               className="w-full group bg-stone-900 hover:bg-stone-800 text-white py-4 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed rounded-sm relative overflow-hidden mt-6"
             >
               <span className="relative z-10 flex items-center justify-center font-light text-sm tracking-wide">
-                {isLoading ?  (
+                {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : actionSuccess ? (
                   <>
@@ -737,7 +745,7 @@ export default function DepartmentEmployeeAuth() {
           {/* Link to engineer portal */}
           <div className="mt-6 text-center">
             <p className="text-stone-400 text-sm font-light">
-              Are you an engineer? {" "}
+              Are you an engineer?{" "}
               <button
                 type="button"
                 onClick={() => navigate("/auth")}
